@@ -54,6 +54,41 @@ struct PayrollResult {
     edi_line: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct Department {
+    id: String,
+    branch_id: String,
+    name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct JobPosition {
+    id: String,
+    name: String,
+    description: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct ContractRecord {
+    id: String,
+    employee_id: String,
+    contract_type: String,
+    start_date: String,
+    end_date: Option<String>,
+    base_salary_eur: f64,
+    coefficient: f64,
+    status: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct SalaryElementRecord {
+    id: String,
+    employee_id: String,
+    element_name: String,
+    amount: f64,
+    period_label: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 enum View {
     Home,
@@ -61,6 +96,7 @@ enum View {
     EmployeeRegister,
     Vacation,
     Payroll,
+    Management,
 }
 
 fn menu_items() -> Vec<(&'static str, Vec<&'static str>)> {
@@ -83,6 +119,10 @@ pub fn app() -> Html {
     let attendance_events = use_state(Vec::<String>::new);
     let leave_records = use_state(Vec::<LeaveRecord>::new);
     let payroll_result = use_state(|| None::<PayrollResult>);
+    let departments = use_state(Vec::<Department>::new);
+    let job_positions = use_state(Vec::<JobPosition>::new);
+    let contracts = use_state(Vec::<ContractRecord>::new);
+    let salary_elements = use_state(Vec::<SalaryElementRecord>::new);
     let camera_photo = use_state(|| None::<String>);
     let camera_input_ref = use_node_ref();
 
@@ -94,6 +134,10 @@ pub fn app() -> Html {
 
     let login_email = use_state(|| "system_admin@example.com".to_owned());
     let login_password = use_state(|| "Password123!".to_owned());
+    let department_name = use_state(|| "Operations".to_owned());
+    let job_name = use_state(|| "Logistics Coordinator".to_owned());
+    let salary_element_name = use_state(|| "Transport allowance".to_owned());
+    let salary_element_amount = use_state(|| "35.0".to_owned());
 
     {
         let branches = branches.clone();
@@ -416,6 +460,211 @@ pub fn app() -> Html {
         })
     };
 
+    let load_management = {
+        let access_token = access_token.clone();
+        let departments = departments.clone();
+        let job_positions = job_positions.clone();
+        let contracts = contracts.clone();
+        let salary_elements = salary_elements.clone();
+        Callback::from(move |_| {
+            let token = (*access_token).clone();
+            let departments = departments.clone();
+            let job_positions = job_positions.clone();
+            let contracts = contracts.clone();
+            let salary_elements = salary_elements.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut departments_req = Request::get(&format!("{}/api/company/departments", API_BASE));
+                if let Some(tk) = token.clone() {
+                    departments_req = departments_req.header("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Ok(resp) = departments_req.send().await {
+                    if let Ok(items) = resp.json::<Vec<Department>>().await {
+                        departments.set(items);
+                    }
+                }
+
+                if let Ok(resp) = Request::get(&format!("{}/api/company/job-positions", API_BASE)).send().await {
+                    if let Ok(items) = resp.json::<Vec<JobPosition>>().await {
+                        job_positions.set(items);
+                    }
+                }
+
+                let mut contracts_req = Request::get(&format!("{}/api/contracts", API_BASE));
+                if let Some(tk) = token.clone() {
+                    contracts_req = contracts_req.header("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Ok(resp) = contracts_req.send().await {
+                    if let Ok(items) = resp.json::<Vec<ContractRecord>>().await {
+                        contracts.set(items);
+                    }
+                }
+
+                let mut salary_req = Request::get(&format!("{}/api/salary-elements", API_BASE));
+                if let Some(tk) = token {
+                    salary_req = salary_req.header("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Ok(resp) = salary_req.send().await {
+                    if let Ok(items) = resp.json::<Vec<SalaryElementRecord>>().await {
+                        salary_elements.set(items);
+                    }
+                }
+            });
+        })
+    };
+
+    let create_department = {
+        let access_token = access_token.clone();
+        let csrf_token = csrf_token.clone();
+        let branches = branches.clone();
+        let department_name = department_name.clone();
+        let error_msg = error_msg.clone();
+        let load_management = load_management.clone();
+        Callback::from(move |_| {
+            let token = (*access_token).clone();
+            let csrf = (*csrf_token).clone();
+            let branches = (*branches).clone();
+            let name = (*department_name).clone();
+            let error_msg = error_msg.clone();
+            let load_management = load_management.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let Some(branch) = branches.first() else {
+                    error_msg.set("No branch available for department creation".to_owned());
+                    return;
+                };
+                let body = serde_json::json!({ "branch_id": branch.id, "name": name });
+                let mut req = Request::post(&format!("{}/api/company/departments", API_BASE))
+                    .body(body.to_string())
+                    .expect("valid request");
+                let _ = req.headers().set("Content-Type", "application/json");
+                if let Some(tk) = token {
+                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Some(cs) = csrf {
+                    let _ = req.headers().set("x-csrf-token", &cs);
+                }
+                if req.send().await.is_ok() {
+                    load_management.emit(());
+                }
+            });
+        })
+    };
+
+    let create_job_position = {
+        let access_token = access_token.clone();
+        let csrf_token = csrf_token.clone();
+        let job_name = job_name.clone();
+        let load_management = load_management.clone();
+        Callback::from(move |_| {
+            let token = (*access_token).clone();
+            let csrf = (*csrf_token).clone();
+            let name = (*job_name).clone();
+            let load_management = load_management.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let body = serde_json::json!({ "name": name, "description": "Created from web management tab" });
+                let mut req = Request::post(&format!("{}/api/company/job-positions", API_BASE))
+                    .body(body.to_string())
+                    .expect("valid request");
+                let _ = req.headers().set("Content-Type", "application/json");
+                if let Some(tk) = token {
+                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Some(cs) = csrf {
+                    let _ = req.headers().set("x-csrf-token", &cs);
+                }
+                if req.send().await.is_ok() {
+                    load_management.emit(());
+                }
+            });
+        })
+    };
+
+    let create_contract = {
+        let access_token = access_token.clone();
+        let csrf_token = csrf_token.clone();
+        let employees = employees.clone();
+        let error_msg = error_msg.clone();
+        let load_management = load_management.clone();
+        Callback::from(move |_| {
+            let token = (*access_token).clone();
+            let csrf = (*csrf_token).clone();
+            let employees = (*employees).clone();
+            let error_msg = error_msg.clone();
+            let load_management = load_management.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let Some(employee) = employees.first() else {
+                    error_msg.set("Load employees before creating contracts".to_owned());
+                    return;
+                };
+                let body = serde_json::json!({
+                    "employee_id": employee.id,
+                    "contract_type": "FullTime",
+                    "start_date": "2026-03-01",
+                    "end_date": null,
+                    "base_salary_eur": 650.0,
+                    "coefficient": 1.0,
+                    "status": "active"
+                });
+                let mut req = Request::post(&format!("{}/api/contracts", API_BASE))
+                    .body(body.to_string())
+                    .expect("valid request");
+                let _ = req.headers().set("Content-Type", "application/json");
+                if let Some(tk) = token {
+                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Some(cs) = csrf {
+                    let _ = req.headers().set("x-csrf-token", &cs);
+                }
+                if req.send().await.is_ok() {
+                    load_management.emit(());
+                }
+            });
+        })
+    };
+
+    let create_salary_element = {
+        let access_token = access_token.clone();
+        let csrf_token = csrf_token.clone();
+        let employees = employees.clone();
+        let salary_element_name = salary_element_name.clone();
+        let salary_element_amount = salary_element_amount.clone();
+        let error_msg = error_msg.clone();
+        let load_management = load_management.clone();
+        Callback::from(move |_| {
+            let token = (*access_token).clone();
+            let csrf = (*csrf_token).clone();
+            let employees = (*employees).clone();
+            let name = (*salary_element_name).clone();
+            let amount = (*salary_element_amount).parse::<f64>().unwrap_or(0.0);
+            let error_msg = error_msg.clone();
+            let load_management = load_management.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let Some(employee) = employees.first() else {
+                    error_msg.set("Load employees before creating salary elements".to_owned());
+                    return;
+                };
+                let body = serde_json::json!({
+                    "employee_id": employee.id,
+                    "element_name": name,
+                    "amount": amount,
+                    "period_label": "2026-03"
+                });
+                let mut req = Request::post(&format!("{}/api/salary-elements", API_BASE))
+                    .body(body.to_string())
+                    .expect("valid request");
+                let _ = req.headers().set("Content-Type", "application/json");
+                if let Some(tk) = token {
+                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                }
+                if let Some(cs) = csrf {
+                    let _ = req.headers().set("x-csrf-token", &cs);
+                }
+                if req.send().await.is_ok() {
+                    load_management.emit(());
+                }
+            });
+        })
+    };
+
     let register_form = html! {
         <section class="card grid-form">
             <h3>{"Regjistrimi i punonjesit / Employee Registration"}</h3>
@@ -517,6 +766,7 @@ pub fn app() -> Html {
                         <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::EmployeeRegister)) }}>{"Register Employee"}</button>
                         <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Vacation)) }}>{"Vacation"}</button>
                         <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Payroll)) }}>{"Payroll"}</button>
+                        <button onclick={{ let view = view.clone(); let load_management = load_management.clone(); Callback::from(move |_| { view.set(View::Management); load_management.emit(()); }) }}>{"Management"}</button>
                     </section>
 
                     if *view == View::EmployeeRegister {
@@ -541,6 +791,74 @@ pub fn app() -> Html {
                                 <p>{format!("{} -> Gross {:.2} EUR / Net {:.2} EUR", res.month_label, res.gross_total, res.net_total)}</p>
                                 <code>{&res.edi_line}</code>
                             }
+                        </section>
+                    }
+
+                    if *view == View::Management {
+                        <section class="widgets">
+                            <div class="card">
+                                <h3>{"Departments"}</h3>
+                                <input
+                                    value={(*department_name).clone()}
+                                    oninput={{
+                                        let department_name = department_name.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            department_name.set(input.value());
+                                        })
+                                    }}
+                                />
+                                <button onclick={create_department}>{"Create Department"}</button>
+                                <ul>{ for departments.iter().map(|d| html!{<li>{format!("{}", d.name)}</li>}) }</ul>
+                            </div>
+                            <div class="card">
+                                <h3>{"Job Positions"}</h3>
+                                <input
+                                    value={(*job_name).clone()}
+                                    oninput={{
+                                        let job_name = job_name.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            job_name.set(input.value());
+                                        })
+                                    }}
+                                />
+                                <button onclick={create_job_position}>{"Create Job Position"}</button>
+                                <ul>{ for job_positions.iter().map(|p| html!{<li>{&p.name}</li>}) }</ul>
+                            </div>
+                            <div class="card">
+                                <h3>{"Contracts"}</h3>
+                                <button onclick={create_contract}>{"Create Contract For First Employee"}</button>
+                                <ul>{ for contracts.iter().take(8).map(|c| html!{<li>{format!("{} / {:.2} EUR", c.contract_type, c.base_salary_eur)}</li>}) }</ul>
+                            </div>
+                        </section>
+
+                        <section class="card">
+                            <h3>{"Salary Elements"}</h3>
+                            <div class="view-tabs">
+                                <input
+                                    value={(*salary_element_name).clone()}
+                                    oninput={{
+                                        let salary_element_name = salary_element_name.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            salary_element_name.set(input.value());
+                                        })
+                                    }}
+                                />
+                                <input
+                                    value={(*salary_element_amount).clone()}
+                                    oninput={{
+                                        let salary_element_amount = salary_element_amount.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            salary_element_amount.set(input.value());
+                                        })
+                                    }}
+                                />
+                                <button onclick={create_salary_element}>{"Add Salary Element"}</button>
+                            </div>
+                            <ul>{ for salary_elements.iter().take(10).map(|s| html!{<li>{format!("{} / {:.2} EUR ({})", s.element_name, s.amount, s.period_label)}</li>}) }</ul>
                         </section>
                     }
 
