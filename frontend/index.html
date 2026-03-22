@@ -36,13 +36,26 @@
         padding: .55rem .9rem;
         cursor: pointer;
         font-weight: 700;
+        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+      }
+      .btn:hover, button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(0,0,0,.12);
+        filter: saturate(1.05);
       }
       .cozy { box-shadow: 0 10px 22px rgba(194,103,43,.25); }
       .hero { text-align: center; padding: 2rem .4rem; }
       .branch-grid { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; margin: 1rem 0; }
       .branch-btn { min-width: 150px; }
       .mega-menu { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0 1rem; }
-      .menu-item { position: relative; background: #f9f3ea; border: 1px solid #e4d5c3; border-radius: 10px; padding: .55rem .8rem; }
+      .menu-item { position: relative; background: #f9f3ea; border: 1px solid #e4d5c3; border-radius: 10px; padding: .25rem; }
+      .menu-title {
+        background: transparent;
+        color: var(--ink);
+        box-shadow: none;
+        padding: .35rem .6rem;
+      }
+      .menu-title:hover { box-shadow: none; background: #f0e4d6; transform: none; }
       .submenu {
         position: absolute;
         top: 100%; left: 0;
@@ -53,9 +66,25 @@
         border-radius: 10px;
         padding: .6rem;
         z-index: 10;
+        transform: translateY(8px);
+        opacity: 0;
+        transition: transform .2s ease, opacity .2s ease;
       }
-      .menu-item:hover .submenu { display: block; }
-      .submenu a { display: block; color: var(--ink); text-decoration: none; padding: .25rem 0; font-size: .92rem; }
+      .menu-item:hover .submenu {
+        display: block;
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .submenu a {
+        display: block;
+        color: var(--ink);
+        text-decoration: none;
+        padding: .35rem .25rem;
+        font-size: .92rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .submenu a:hover { background: #f6efe4; }
       .widgets { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .8rem; margin: .8rem 0; }
       .card {
         background: var(--card);
@@ -76,9 +105,40 @@
       }
       .field small { color: var(--muted); }
       .view-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
-      .login-box input { width: 100%; margin-bottom: .45rem; }
+      .employee-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+        margin-bottom: .7rem;
+      }
+      .employee-pill {
+        background: linear-gradient(145deg, #d67b3f, #b75f27);
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(31, 22, 13, .45);
+        display: grid;
+        place-items: center;
+        z-index: 40;
+        backdrop-filter: blur(2px);
+        animation: fadeIn .18s ease;
+      }
+      .login-modal {
+        width: min(92vw, 420px);
+        animation: popIn .2s ease;
+      }
+      .login-modal input { width: 100%; margin-bottom: .45rem; }
       .error { color: #9e1c1c; font-weight: 700; }
       code { font-family: "IBM Plex Mono", monospace; display: block; margin-top: .5rem; }
+      @keyframes popIn {
+        from { transform: translateY(8px) scale(.98); opacity: 0; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
       @media (max-width: 900px) {
         .widgets, .grid-form { grid-template-columns: 1fr; }
         .submenu { position: static; display: block; border: 0; background: transparent; padding: .2rem 0 0; }

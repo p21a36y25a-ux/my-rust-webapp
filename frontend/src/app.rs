@@ -112,6 +112,16 @@ fn menu_target(label: &str) -> Option<View> {
     }
 }
 
+fn menu_title_target(title: &str) -> Option<View> {
+    match title {
+        "Employee" => Some(View::EmployeeRegister),
+        "Salary/Compensation" => Some(View::Payroll),
+        "Vacation" => Some(View::Vacation),
+        "HR Definitions" | "Company" | "Administration" => Some(View::Management),
+        _ => None,
+    }
+}
+
 fn menu_items() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("Employee", vec!["Register Employees", "Click-in", "Register Contracts", "Employee Files", "Employee Status"]),
@@ -129,6 +139,7 @@ pub fn app() -> Html {
     let branches = use_state(Vec::<Branch>::new);
     let selected_branch = use_state(|| None::<String>);
     let employees = use_state(Vec::<Employee>::new);
+    let selected_employee = use_state(|| None::<String>);
     let attendance_events = use_state(Vec::<String>::new);
     let leave_records = use_state(Vec::<LeaveRecord>::new);
     let payroll_result = use_state(|| None::<PayrollResult>);
@@ -143,6 +154,7 @@ pub fn app() -> Html {
     let csrf_token = use_state(|| LocalStorage::get::<String>("csrf_token").ok());
     let user_role = use_state(|| LocalStorage::get::<String>("role").unwrap_or_else(|_| "guest".to_owned()));
     let view = use_state(|| View::Home);
+    let show_login_popup = use_state(|| false);
     let error_msg = use_state(String::new);
 
     let login_email = use_state(|| "system_admin@example.com".to_owned());
@@ -242,6 +254,7 @@ pub fn app() -> Html {
         let csrf_token = csrf_token.clone();
         let user_role = user_role.clone();
         let view = view.clone();
+        let show_login_popup = show_login_popup.clone();
         let error_msg = error_msg.clone();
         Callback::from(move |_| {
             let email = (*login_email).clone();
@@ -250,6 +263,7 @@ pub fn app() -> Html {
             let csrf_token = csrf_token.clone();
             let user_role = user_role.clone();
             let view = view.clone();
+            let show_login_popup = show_login_popup.clone();
             let error_msg = error_msg.clone();
 
             wasm_bindgen_futures::spawn_local(async move {
@@ -269,6 +283,7 @@ pub fn app() -> Html {
                             access_token.set(Some(auth.access_token));
                             csrf_token.set(Some(auth.csrf_token));
                             user_role.set(auth.role);
+                            show_login_popup.set(false);
                             view.set(View::Dashboard);
                             error_msg.set(String::new());
                         }
@@ -283,12 +298,14 @@ pub fn app() -> Html {
         let access_token = access_token.clone();
         let csrf_token = csrf_token.clone();
         let employees = employees.clone();
+        let selected_employee = selected_employee.clone();
         let camera_photo = camera_photo.clone();
         let error_msg = error_msg.clone();
         Callback::from(move |click_type: String| {
             let token = (*access_token).clone();
             let csrf = (*csrf_token).clone();
             let employees = (*employees).clone();
+            let selected_employee = (*selected_employee).clone();
             let photo = (*camera_photo).clone();
             let error_msg = error_msg.clone();
             wasm_bindgen_futures::spawn_local(async move {
@@ -300,7 +317,9 @@ pub fn app() -> Html {
                     error_msg.set("Capture a camera photo before clock-in/out".to_owned());
                     return;
                 };
-                let employee_id = employees[0].id.clone();
+                let employee_id = selected_employee
+                    .and_then(|id| employees.iter().find(|e| e.id == id).map(|e| e.id.clone()))
+                    .unwrap_or_else(|| employees[0].id.clone());
                 let body = serde_json::json!({
                     "employee_id": employee_id,
                     "click_type": click_type,
@@ -712,7 +731,7 @@ pub fn app() -> Html {
             <header class="topbar">
                 <h1>{"Time Attendance, HR & Payroll"}</h1>
                 <div class="actions">
-                    <button class="btn cozy" onclick={on_login}>{"Log In"}</button>
+                    <button class="btn cozy" onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(true)) }}>{"Log In"}</button>
                 </div>
             </header>
 
@@ -720,7 +739,19 @@ pub fn app() -> Html {
                 <nav class="mega-menu">
                     { for menu_items().into_iter().map(|(title, subs)| html!{
                         <div class="menu-item">
-                            <span>{title}</span>
+                            <button class="menu-title" onclick={{
+                                let view = view.clone();
+                                let load_management = load_management.clone();
+                                let title_label = title.to_owned();
+                                Callback::from(move |_| {
+                                    if let Some(next_view) = menu_title_target(&title_label) {
+                                        if next_view == View::Management {
+                                            load_management.emit(());
+                                        }
+                                        view.set(next_view);
+                                    }
+                                })
+                            }}>{title}</button>
                             <div class="submenu">
                                 {
                                     for subs.into_iter().map(|s| {
@@ -765,19 +796,22 @@ pub fn app() -> Html {
 
                         <div class="card">
                             <h3>{"Branch Employees"}</h3>
-                            <ul>
+                            <div class="employee-inline">
                                 { for employees.iter().map(|e| {
-                                    let quick_punch = quick_punch.clone();
-                                    let quick_punch_out = quick_punch.clone();
+                                    let selected_employee = selected_employee.clone();
+                                    let employee_id = e.id.clone();
                                     html! {
-                                        <li>
-                                            <span>{ format!("{} {} - {}", e.name, e.surname, e.job_position) }</span>
-                                            <button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Clock In"}</button>
-                                            <button onclick={Callback::from(move |_| quick_punch_out.emit("clock_out".to_owned()))}>{"Clock Out"}</button>
-                                        </li>
+                                        <button class="employee-pill" onclick={Callback::from(move |_| selected_employee.set(Some(employee_id.clone())))}>{ format!("{} {}", e.name, e.surname) }</button>
                                     }
                                 }) }
-                            </ul>
+                            </div>
+                            if let Some(id) = &*selected_employee {
+                                <p>{format!("Selected employee: {}", id)}</p>
+                            }
+                            <div class="view-tabs">
+                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_in".to_owned())) }}>{"Clock In"}</button>
+                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_out".to_owned())) }}>{"Clock Out"}</button>
+                            </div>
                         </div>
                     </section>
                 } else {
@@ -1347,20 +1381,28 @@ pub fn app() -> Html {
                     </section>
                 }
 
-                <section class="card login-box">
-                    <h3>{"Demo Login"}</h3>
-                    <label>{"Email"}</label>
-                    <input value={(*login_email).clone()} oninput={{ let login_email = login_email.clone(); Callback::from(move |e: InputEvent| {
-                        let input: HtmlInputElement = e.target_unchecked_into();
-                        login_email.set(input.value());
-                    }) }} />
-                    <label>{"Password"}</label>
-                    <input type="password" value={(*login_password).clone()} oninput={{ let login_password = login_password.clone(); Callback::from(move |e: InputEvent| {
-                        let input: HtmlInputElement = e.target_unchecked_into();
-                        login_password.set(input.value());
-                    }) }} />
-                    <small>{format!("Role: {}", (*user_role).clone())}</small>
-                </section>
+                if *show_login_popup {
+                    <div class="modal-overlay" onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(false)) }}>
+                        <section class="card login-modal" onclick={Callback::from(|e: MouseEvent| e.stop_propagation())}>
+                            <h3>{"Demo Login"}</h3>
+                            <label>{"Email"}</label>
+                            <input value={(*login_email).clone()} oninput={{ let login_email = login_email.clone(); Callback::from(move |e: InputEvent| {
+                                let input: HtmlInputElement = e.target_unchecked_into();
+                                login_email.set(input.value());
+                            }) }} />
+                            <label>{"Password"}</label>
+                            <input type="password" value={(*login_password).clone()} oninput={{ let login_password = login_password.clone(); Callback::from(move |e: InputEvent| {
+                                let input: HtmlInputElement = e.target_unchecked_into();
+                                login_password.set(input.value());
+                            }) }} />
+                            <div class="view-tabs">
+                                <button class="btn cozy" onclick={on_login.clone()}>{"Log In"}</button>
+                                <button onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(false)) }}>{"Close"}</button>
+                            </div>
+                            <small>{format!("Role: {}", (*user_role).clone())}</small>
+                        </section>
+                    </div>
+                }
 
                 <input
                     type="file"
