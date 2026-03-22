@@ -4,6 +4,86 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>My Rust Webapp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f3efe8;
+        --bg2: #fffaf0;
+        --ink: #1e1c1a;
+        --muted: #6d655c;
+        --card: #ffffff;
+        --brand: #c2672b;
+        --brand2: #f0b588;
+        --ok: #1f7a4d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Manrope", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 10% 10%, #fff5e8, var(--bg) 40%, #efe8dd 100%);
+      }
+      .shell { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+      .topbar { display: flex; justify-content: space-between; align-items: center; }
+      h1, h2, h3 { margin: 0 0 .6rem 0; }
+      .btn, button {
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--brand), #a94d16);
+        color: white;
+        padding: .55rem .9rem;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .cozy { box-shadow: 0 10px 22px rgba(194,103,43,.25); }
+      .hero { text-align: center; padding: 2rem .4rem; }
+      .branch-grid { display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; margin: 1rem 0; }
+      .branch-btn { min-width: 150px; }
+      .mega-menu { display: flex; flex-wrap: wrap; gap: .6rem; margin: .8rem 0 1rem; }
+      .menu-item { position: relative; background: #f9f3ea; border: 1px solid #e4d5c3; border-radius: 10px; padding: .55rem .8rem; }
+      .submenu {
+        position: absolute;
+        top: 100%; left: 0;
+        min-width: 250px;
+        display: none;
+        background: #fff;
+        border: 1px solid #eadbc8;
+        border-radius: 10px;
+        padding: .6rem;
+        z-index: 10;
+      }
+      .menu-item:hover .submenu { display: block; }
+      .submenu a { display: block; color: var(--ink); text-decoration: none; padding: .25rem 0; font-size: .92rem; }
+      .widgets { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .8rem; margin: .8rem 0; }
+      .card {
+        background: var(--card);
+        border: 1px solid #eadbc8;
+        border-radius: 14px;
+        padding: .9rem;
+        box-shadow: 0 10px 18px rgba(0,0,0,.04);
+      }
+      .card ul { padding-left: 1rem; }
+      .grid-form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .65rem; }
+      .field { display: flex; flex-direction: column; }
+      .field label { font-weight: 700; font-size: .9rem; }
+      .field input {
+        border: 1px solid #d4c3af;
+        border-radius: 9px;
+        padding: .5rem .55rem;
+        font-family: inherit;
+      }
+      .field small { color: var(--muted); }
+      .view-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .8rem; }
+      .login-box input { width: 100%; margin-bottom: .45rem; }
+      .error { color: #9e1c1c; font-weight: 700; }
+      code { font-family: "IBM Plex Mono", monospace; display: block; margin-top: .5rem; }
+      @media (max-width: 900px) {
+        .widgets, .grid-form { grid-template-columns: 1fr; }
+        .submenu { position: static; display: block; border: 0; background: transparent; padding: .2rem 0 0; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

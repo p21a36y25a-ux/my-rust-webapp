@@ -16,8 +16,12 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/mydb
+      JWT_SECRET: super-secret-change-in-production
+      UPLOAD_DIR: /var/lib/app/uploads
     ports:
       - "8080:8080"
+    volumes:
+      - backend-uploads:/var/lib/app/uploads
     depends_on:
       - db
 
@@ -32,3 +36,4 @@ services:
 
 volumes:
   db-data:
+  backend-uploads:
