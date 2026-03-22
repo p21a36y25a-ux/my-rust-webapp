@@ -2,6 +2,7 @@ use gloo_file::{futures::read_as_data_url, File};
 use gloo_net::http::Request;
 use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use wasm_bindgen::JsCast;
 use web_sys::{window, EventSource, HtmlInputElement};
 use yew::prelude::*;
@@ -138,6 +139,12 @@ pub fn app() -> Html {
     let job_name = use_state(|| "Logistics Coordinator".to_owned());
     let salary_element_name = use_state(|| "Transport allowance".to_owned());
     let salary_element_amount = use_state(|| "35.0".to_owned());
+    let contract_type_inputs = use_state(HashMap::<String, String>::new);
+    let contract_salary_inputs = use_state(HashMap::<String, String>::new);
+    let contract_status_inputs = use_state(HashMap::<String, String>::new);
+    let salary_name_inputs = use_state(HashMap::<String, String>::new);
+    let salary_amount_inputs = use_state(HashMap::<String, String>::new);
+    let salary_period_inputs = use_state(HashMap::<String, String>::new);
 
     {
         let branches = branches.clone();
@@ -988,10 +995,59 @@ pub fn app() -> Html {
                                     let coefficient = c.coefficient;
                                     let status = c.status.clone();
 
+                                    let contract_type_value = (*contract_type_inputs)
+                                        .get(&contract_id)
+                                        .cloned()
+                                        .unwrap_or(contract_type.clone());
+                                    let contract_salary_value = (*contract_salary_inputs)
+                                        .get(&contract_id)
+                                        .cloned()
+                                        .unwrap_or(format!("{:.2}", base_salary_eur));
+                                    let contract_status_value = (*contract_status_inputs)
+                                        .get(&contract_id)
+                                        .cloned()
+                                        .unwrap_or(status.clone());
+
+                                    let on_contract_type_change = {
+                                        let contract_type_inputs = contract_type_inputs.clone();
+                                        let contract_id = contract_id.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            let mut next = (*contract_type_inputs).clone();
+                                            next.insert(contract_id.clone(), input.value());
+                                            contract_type_inputs.set(next);
+                                        })
+                                    };
+
+                                    let on_contract_salary_change = {
+                                        let contract_salary_inputs = contract_salary_inputs.clone();
+                                        let contract_id = contract_id.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            let mut next = (*contract_salary_inputs).clone();
+                                            next.insert(contract_id.clone(), input.value());
+                                            contract_salary_inputs.set(next);
+                                        })
+                                    };
+
+                                    let on_contract_status_change = {
+                                        let contract_status_inputs = contract_status_inputs.clone();
+                                        let contract_id = contract_id.clone();
+                                        Callback::from(move |e: InputEvent| {
+                                            let input: HtmlInputElement = e.target_unchecked_into();
+                                            let mut next = (*contract_status_inputs).clone();
+                                            next.insert(contract_id.clone(), input.value());
+                                            contract_status_inputs.set(next);
+                                        })
+                                    };
+
                                     let edit_contract = {
                                         let access_token = access_token.clone();
                                         let csrf_token = csrf_token.clone();
                                         let load_management = load_management.clone();
+                                        let contract_type_inputs = contract_type_inputs.clone();
+                                        let contract_salary_inputs = contract_salary_inputs.clone();
+                                        let contract_status_inputs = contract_status_inputs.clone();
                                         let contract_id = contract_id.clone();
                                         let contract_type = contract_type.clone();
                                         let start_date = start_date.clone();
@@ -1002,11 +1058,20 @@ pub fn app() -> Html {
                                             let csrf = (*csrf_token).clone();
                                             let load_management = load_management.clone();
                                             let contract_id = contract_id.clone();
-                                            let contract_type = contract_type.clone();
                                             let start_date = start_date.clone();
                                             let end_date = end_date.clone();
-                                            let status = status.clone();
-                                            let salary = base_salary_eur + 10.0;
+                                            let contract_type = (*contract_type_inputs)
+                                                .get(&contract_id)
+                                                .cloned()
+                                                .unwrap_or(contract_type.clone());
+                                            let salary = (*contract_salary_inputs)
+                                                .get(&contract_id)
+                                                .and_then(|v| v.parse::<f64>().ok())
+                                                .unwrap_or(base_salary_eur);
+                                            let status = (*contract_status_inputs)
+                                                .get(&contract_id)
+                                                .cloned()
+                                                .unwrap_or(status.clone());
                                             wasm_bindgen_futures::spawn_local(async move {
                                                 let body = serde_json::json!({
                                                     "contract_type": contract_type,
@@ -1064,8 +1129,12 @@ pub fn app() -> Html {
 
                                     html! {
                                         <li>
-                                            <span>{format!("{} / {:.2} EUR", contract_type, base_salary_eur)}</span>
-                                            <button onclick={edit_contract}>{"+10 EUR"}</button>
+                                            <div class="view-tabs">
+                                                <input value={contract_type_value} oninput={on_contract_type_change} />
+                                                <input value={contract_salary_value} oninput={on_contract_salary_change} />
+                                                <input value={contract_status_value} oninput={on_contract_status_change} />
+                                                <button onclick={edit_contract}>{"Save"}</button>
+                                            </div>
                                             <button onclick={delete_contract}>{"Delete"}</button>
                                         </li>
                                     }
@@ -1104,10 +1173,59 @@ pub fn app() -> Html {
                                 let period_label = s.period_label.clone();
                                 let amount = s.amount;
 
+                                let salary_name_value = (*salary_name_inputs)
+                                    .get(&salary_id)
+                                    .cloned()
+                                    .unwrap_or(element_name.clone());
+                                let salary_amount_value = (*salary_amount_inputs)
+                                    .get(&salary_id)
+                                    .cloned()
+                                    .unwrap_or(format!("{:.2}", amount));
+                                let salary_period_value = (*salary_period_inputs)
+                                    .get(&salary_id)
+                                    .cloned()
+                                    .unwrap_or(period_label.clone());
+
+                                let on_salary_name_change = {
+                                    let salary_name_inputs = salary_name_inputs.clone();
+                                    let salary_id = salary_id.clone();
+                                    Callback::from(move |e: InputEvent| {
+                                        let input: HtmlInputElement = e.target_unchecked_into();
+                                        let mut next = (*salary_name_inputs).clone();
+                                        next.insert(salary_id.clone(), input.value());
+                                        salary_name_inputs.set(next);
+                                    })
+                                };
+
+                                let on_salary_amount_change = {
+                                    let salary_amount_inputs = salary_amount_inputs.clone();
+                                    let salary_id = salary_id.clone();
+                                    Callback::from(move |e: InputEvent| {
+                                        let input: HtmlInputElement = e.target_unchecked_into();
+                                        let mut next = (*salary_amount_inputs).clone();
+                                        next.insert(salary_id.clone(), input.value());
+                                        salary_amount_inputs.set(next);
+                                    })
+                                };
+
+                                let on_salary_period_change = {
+                                    let salary_period_inputs = salary_period_inputs.clone();
+                                    let salary_id = salary_id.clone();
+                                    Callback::from(move |e: InputEvent| {
+                                        let input: HtmlInputElement = e.target_unchecked_into();
+                                        let mut next = (*salary_period_inputs).clone();
+                                        next.insert(salary_id.clone(), input.value());
+                                        salary_period_inputs.set(next);
+                                    })
+                                };
+
                                 let edit_salary = {
                                     let access_token = access_token.clone();
                                     let csrf_token = csrf_token.clone();
                                     let load_management = load_management.clone();
+                                    let salary_name_inputs = salary_name_inputs.clone();
+                                    let salary_amount_inputs = salary_amount_inputs.clone();
+                                    let salary_period_inputs = salary_period_inputs.clone();
                                     let salary_id = salary_id.clone();
                                     let element_name = element_name.clone();
                                     let period_label = period_label.clone();
@@ -1116,9 +1234,18 @@ pub fn app() -> Html {
                                         let csrf = (*csrf_token).clone();
                                         let load_management = load_management.clone();
                                         let salary_id = salary_id.clone();
-                                        let element_name = element_name.clone();
-                                        let period_label = period_label.clone();
-                                        let amount = amount + 5.0;
+                                        let element_name = (*salary_name_inputs)
+                                            .get(&salary_id)
+                                            .cloned()
+                                            .unwrap_or(element_name.clone());
+                                        let period_label = (*salary_period_inputs)
+                                            .get(&salary_id)
+                                            .cloned()
+                                            .unwrap_or(period_label.clone());
+                                        let amount = (*salary_amount_inputs)
+                                            .get(&salary_id)
+                                            .and_then(|v| v.parse::<f64>().ok())
+                                            .unwrap_or(amount);
                                         wasm_bindgen_futures::spawn_local(async move {
                                             let body = serde_json::json!({
                                                 "element_name": element_name,
@@ -1173,8 +1300,12 @@ pub fn app() -> Html {
 
                                 html! {
                                     <li>
-                                        <span>{format!("{} / {:.2} EUR ({})", element_name, amount, period_label)}</span>
-                                        <button onclick={edit_salary}>{"+5 EUR"}</button>
+                                        <div class="view-tabs">
+                                            <input value={salary_name_value} oninput={on_salary_name_change} />
+                                            <input value={salary_amount_value} oninput={on_salary_amount_change} />
+                                            <input value={salary_period_value} oninput={on_salary_period_change} />
+                                            <button onclick={edit_salary}>{"Save"}</button>
+                                        </div>
                                         <button onclick={delete_salary}>{"Delete"}</button>
                                     </li>
                                 }
