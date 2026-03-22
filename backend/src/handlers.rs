@@ -18,10 +18,11 @@ use crate::{
     auth::{create_token_pair, decode_token, require_csrf, verify_password, AuthUser},
     models::{
         ApiMessage, AttendanceEvent, AttendancePunchRequest, AttendanceRecord, AuthResponse, Branch,
-        BranchCreate, ContractCreate, ContractRecord, Department, DepartmentCreate, Employee,
-        EmployeeCreate, JobPosition, JobPositionCreate, LeaveCreateRequest, LeaveDecisionRequest,
-        LeaveRequestRecord, LoginRequest, PayrollInput, PayrollResult, RefreshRequest, Role,
-        SalaryElementCreate, SalaryElementRecord,
+        BranchCreate, ContractCreate, ContractRecord, ContractUpdate, Department, DepartmentCreate,
+        DepartmentUpdate, Employee, EmployeeCreate, JobPosition, JobPositionCreate,
+        JobPositionUpdate, LeaveCreateRequest, LeaveDecisionRequest, LeaveRequestRecord,
+        LoginRequest, PayrollInput, PayrollResult, RefreshRequest, Role, SalaryElementCreate,
+        SalaryElementRecord, SalaryElementUpdate,
     },
     AppState,
 };
@@ -226,6 +227,50 @@ pub async fn create_department(
     Ok((StatusCode::CREATED, Json(row)))
 }
 
+#[utoipa::path(put, path = "/api/company/departments/{id}", request_body = DepartmentUpdate, params(("id" = String, Path, description = "Department id")), responses((status = 200, body = Department)))]
+pub async fn update_department(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<DepartmentUpdate>,
+) -> Result<Json<Department>, (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, Department>(
+        "UPDATE departments SET name = $1 WHERE id = $2 RETURNING id, branch_id, name",
+    )
+    .bind(payload.name)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/company/departments/{id}", params(("id" = String, Path, description = "Department id")), responses((status = 200, body = ApiMessage)))]
+pub async fn delete_department(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiMessage>, (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    sqlx::query("DELETE FROM departments WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(ApiMessage {
+        message: "Department deleted".to_owned(),
+    }))
+}
+
 #[utoipa::path(get, path = "/api/company/job-positions", responses((status = 200, body = [JobPosition])))]
 pub async fn list_job_positions(
     state: axum::extract::State<AppState>,
@@ -261,6 +306,51 @@ pub async fn create_job_position(
     .map_err(internal_error)?;
 
     Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(put, path = "/api/company/job-positions/{id}", request_body = JobPositionUpdate, params(("id" = String, Path, description = "Job position id")), responses((status = 200, body = JobPosition)))]
+pub async fn update_job_position(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<JobPositionUpdate>,
+) -> Result<Json<JobPosition>, (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, JobPosition>(
+        "UPDATE job_positions SET name = $1, description = $2 WHERE id = $3 RETURNING id, name, description",
+    )
+    .bind(payload.name)
+    .bind(payload.description)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/company/job-positions/{id}", params(("id" = String, Path, description = "Job position id")), responses((status = 200, body = ApiMessage)))]
+pub async fn delete_job_position(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiMessage>, (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    sqlx::query("DELETE FROM job_positions WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(ApiMessage {
+        message: "Job position deleted".to_owned(),
+    }))
 }
 
 #[utoipa::path(get, path = "/api/employees", params(("branch_id" = Option<String>, Query, description = "Filter by branch")), responses((status = 200, body = [Employee])))]
@@ -585,6 +675,62 @@ pub async fn create_contract(
     Ok((StatusCode::CREATED, Json(row)))
 }
 
+#[utoipa::path(put, path = "/api/contracts/{id}", request_body = ContractUpdate, params(("id" = String, Path, description = "Contract id")), responses((status = 200, body = ContractRecord)))]
+pub async fn update_contract(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<ContractUpdate>,
+) -> Result<Json<ContractRecord>, (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, ContractRecord>(
+        r#"UPDATE contracts
+           SET contract_type = $1, start_date = $2, end_date = $3,
+               base_salary_eur = $4, coefficient = $5, status = $6
+           WHERE id = $7
+           RETURNING id, employee_id, contract_type, start_date, end_date,
+           base_salary_eur::double precision as base_salary_eur,
+           coefficient::double precision as coefficient,
+           status"#,
+    )
+    .bind(payload.contract_type)
+    .bind(payload.start_date)
+    .bind(payload.end_date)
+    .bind(payload.base_salary_eur)
+    .bind(payload.coefficient)
+    .bind(payload.status)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/contracts/{id}", params(("id" = String, Path, description = "Contract id")), responses((status = 200, body = ApiMessage)))]
+pub async fn delete_contract(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiMessage>, (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    sqlx::query("DELETE FROM contracts WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(ApiMessage {
+        message: "Contract deleted".to_owned(),
+    }))
+}
+
 #[utoipa::path(get, path = "/api/salary-elements", responses((status = 200, body = [SalaryElementRecord])))]
 pub async fn list_salary_elements(
     state: axum::extract::State<AppState>,
@@ -639,6 +785,55 @@ pub async fn create_salary_element(
     .map_err(internal_error)?;
 
     Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(put, path = "/api/salary-elements/{id}", request_body = SalaryElementUpdate, params(("id" = String, Path, description = "Salary element id")), responses((status = 200, body = SalaryElementRecord)))]
+pub async fn update_salary_element(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<SalaryElementUpdate>,
+) -> Result<Json<SalaryElementRecord>, (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, SalaryElementRecord>(
+        r#"UPDATE salary_elements
+           SET element_name = $1, amount = $2, period_label = $3
+           WHERE id = $4
+           RETURNING id, employee_id, element_name, amount::double precision as amount, period_label"#,
+    )
+    .bind(payload.element_name)
+    .bind(payload.amount)
+    .bind(payload.period_label)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(delete, path = "/api/salary-elements/{id}", params(("id" = String, Path, description = "Salary element id")), responses((status = 200, body = ApiMessage)))]
+pub async fn delete_salary_element(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Result<Json<ApiMessage>, (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    sqlx::query("DELETE FROM salary_elements WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(ApiMessage {
+        message: "Salary element deleted".to_owned(),
+    }))
 }
 
 #[utoipa::path(post, path = "/api/leave/{id}/manager-decision", request_body = LeaveDecisionRequest, responses((status = 200, body = LeaveRequestRecord)))]

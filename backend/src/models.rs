@@ -52,6 +52,11 @@ pub struct DepartmentCreate {
     pub name: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct DepartmentUpdate {
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct JobPosition {
     pub id: Uuid,
@@ -61,6 +66,12 @@ pub struct JobPosition {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct JobPositionCreate {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct JobPositionUpdate {
     pub name: String,
     pub description: Option<String>,
 }
@@ -196,6 +207,16 @@ pub struct ContractCreate {
     pub status: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ContractUpdate {
+    pub contract_type: String,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub base_salary_eur: f64,
+    pub coefficient: f64,
+    pub status: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct SalaryElementRecord {
     pub id: Uuid,
@@ -208,6 +229,13 @@ pub struct SalaryElementRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SalaryElementCreate {
     pub employee_id: Uuid,
+    pub element_name: String,
+    pub amount: f64,
+    pub period_label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SalaryElementUpdate {
     pub element_name: String,
     pub amount: f64,
     pub period_label: String,

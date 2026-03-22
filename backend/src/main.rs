@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use axum::{
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use dotenv::dotenv;
@@ -35,8 +35,12 @@ pub struct AppState {
         handlers::create_branch,
         handlers::list_departments,
         handlers::create_department,
+        handlers::update_department,
+        handlers::delete_department,
         handlers::list_job_positions,
         handlers::create_job_position,
+        handlers::update_job_position,
+        handlers::delete_job_position,
         handlers::list_employees,
         handlers::create_employee,
         handlers::upload_employee_file,
@@ -55,8 +59,12 @@ pub struct AppState {
         handlers::list_registrations,
         handlers::list_contracts,
         handlers::create_contract,
+        handlers::update_contract,
+        handlers::delete_contract,
         handlers::list_salary_elements,
         handlers::create_salary_element,
+        handlers::update_salary_element,
+        handlers::delete_salary_element,
     ),
     components(schemas(
         models::LoginRequest,
@@ -67,8 +75,10 @@ pub struct AppState {
         models::BranchCreate,
         models::Department,
         models::DepartmentCreate,
+        models::DepartmentUpdate,
         models::JobPosition,
         models::JobPositionCreate,
+        models::JobPositionUpdate,
         models::Employee,
         models::EmployeeCreate,
         models::AttendanceRecord,
@@ -81,8 +91,10 @@ pub struct AppState {
         models::PayrollResult,
         models::ContractRecord,
         models::ContractCreate,
+        models::ContractUpdate,
         models::SalaryElementRecord,
         models::SalaryElementCreate,
+        models::SalaryElementUpdate,
         handlers::HrDefinitionCreate,
         handlers::HrDefinitionRecord,
         handlers::RegistrationRecord,
@@ -132,7 +144,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/auth/refresh", post(handlers::refresh))
         .route("/api/company/branches", get(handlers::list_branches).post(handlers::create_branch))
         .route("/api/company/departments", get(handlers::list_departments).post(handlers::create_department))
+        .route("/api/company/departments/:id", put(handlers::update_department).delete(handlers::delete_department))
         .route("/api/company/job-positions", get(handlers::list_job_positions).post(handlers::create_job_position))
+        .route("/api/company/job-positions/:id", put(handlers::update_job_position).delete(handlers::delete_job_position))
         .route("/api/employees", get(handlers::list_employees).post(handlers::create_employee))
         .route("/api/employees/:id/files", post(handlers::upload_employee_file))
         .route("/api/attendance", get(handlers::list_attendance))
@@ -145,7 +159,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/payroll/run", post(handlers::run_payroll))
         .route("/api/payroll/:run_id/edi", get(handlers::export_edi))
         .route("/api/contracts", get(handlers::list_contracts).post(handlers::create_contract))
+        .route("/api/contracts/:id", put(handlers::update_contract).delete(handlers::delete_contract))
         .route("/api/salary-elements", get(handlers::list_salary_elements).post(handlers::create_salary_element))
+        .route("/api/salary-elements/:id", put(handlers::update_salary_element).delete(handlers::delete_salary_element))
         .route("/api/hr-definitions", get(handlers::list_hr_definitions).post(handlers::create_hr_definition))
         .route("/api/administration/registrations", get(handlers::list_registrations));
 

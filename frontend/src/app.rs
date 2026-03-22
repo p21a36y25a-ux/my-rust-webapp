@@ -3,7 +3,7 @@ use gloo_net::http::Request;
 use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsCast;
-use web_sys::{EventSource, HtmlInputElement};
+use web_sys::{window, EventSource, HtmlInputElement};
 use yew::prelude::*;
 
 const API_BASE: &str = "http://localhost:8080";
@@ -809,7 +809,79 @@ pub fn app() -> Html {
                                     }}
                                 />
                                 <button onclick={create_department}>{"Create Department"}</button>
-                                <ul>{ for departments.iter().map(|d| html!{<li>{format!("{}", d.name)}</li>}) }</ul>
+                                <ul>{ for departments.iter().map(|d| {
+                                    let department_id = d.id.clone();
+                                    let department_name_value = d.name.clone();
+
+                                    let edit_department = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let department_id = department_id.clone();
+                                        let department_name_value = department_name_value.clone();
+                                        Callback::from(move |_| {
+                                            let Some(win) = window() else { return; };
+                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Department name", &department_name_value) else { return; };
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let department_id = department_id.clone();
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let body = serde_json::json!({ "name": next_name });
+                                                let mut req = Request::put(&format!("{}/api/company/departments/{}", API_BASE, department_id))
+                                                    .body(body.to_string())
+                                                    .expect("valid request");
+                                                let _ = req.headers().set("Content-Type", "application/json");
+                                                if let Some(tk) = token {
+                                                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    let _ = req.headers().set("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    let delete_department = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let department_id = department_id.clone();
+                                        Callback::from(move |_| {
+                                            let Some(win) = window() else { return; };
+                                            if !win.confirm_with_message("Delete this department?").unwrap_or(false) {
+                                                return;
+                                            }
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let department_id = department_id.clone();
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let mut req = Request::delete(&format!("{}/api/company/departments/{}", API_BASE, department_id));
+                                                if let Some(tk) = token {
+                                                    req = req.header("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    req = req.header("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    html! {
+                                        <li>
+                                            <span>{department_name_value}</span>
+                                            <button onclick={edit_department}>{"Edit"}</button>
+                                            <button onclick={delete_department}>{"Delete"}</button>
+                                        </li>
+                                    }
+                                }) }</ul>
                             </div>
                             <div class="card">
                                 <h3>{"Job Positions"}</h3>
@@ -824,12 +896,180 @@ pub fn app() -> Html {
                                     }}
                                 />
                                 <button onclick={create_job_position}>{"Create Job Position"}</button>
-                                <ul>{ for job_positions.iter().map(|p| html!{<li>{&p.name}</li>}) }</ul>
+                                <ul>{ for job_positions.iter().map(|p| {
+                                    let position_id = p.id.clone();
+                                    let position_name = p.name.clone();
+                                    let position_description = p.description.clone();
+
+                                    let edit_position = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let position_id = position_id.clone();
+                                        let position_name = position_name.clone();
+                                        let position_description = position_description.clone();
+                                        Callback::from(move |_| {
+                                            let Some(win) = window() else { return; };
+                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Job position name", &position_name) else { return; };
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let position_id = position_id.clone();
+                                            let position_description = position_description.clone();
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let body = serde_json::json!({
+                                                    "name": next_name,
+                                                    "description": position_description
+                                                });
+                                                let mut req = Request::put(&format!("{}/api/company/job-positions/{}", API_BASE, position_id))
+                                                    .body(body.to_string())
+                                                    .expect("valid request");
+                                                let _ = req.headers().set("Content-Type", "application/json");
+                                                if let Some(tk) = token {
+                                                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    let _ = req.headers().set("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    let delete_position = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let position_id = position_id.clone();
+                                        Callback::from(move |_| {
+                                            let Some(win) = window() else { return; };
+                                            if !win.confirm_with_message("Delete this job position?").unwrap_or(false) {
+                                                return;
+                                            }
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let position_id = position_id.clone();
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let mut req = Request::delete(&format!("{}/api/company/job-positions/{}", API_BASE, position_id));
+                                                if let Some(tk) = token {
+                                                    req = req.header("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    req = req.header("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    html! {
+                                        <li>
+                                            <span>{position_name}</span>
+                                            <button onclick={edit_position}>{"Edit"}</button>
+                                            <button onclick={delete_position}>{"Delete"}</button>
+                                        </li>
+                                    }
+                                }) }</ul>
                             </div>
                             <div class="card">
                                 <h3>{"Contracts"}</h3>
                                 <button onclick={create_contract}>{"Create Contract For First Employee"}</button>
-                                <ul>{ for contracts.iter().take(8).map(|c| html!{<li>{format!("{} / {:.2} EUR", c.contract_type, c.base_salary_eur)}</li>}) }</ul>
+                                <ul>{ for contracts.iter().take(8).map(|c| {
+                                    let contract_id = c.id.clone();
+                                    let contract_type = c.contract_type.clone();
+                                    let start_date = c.start_date.clone();
+                                    let end_date = c.end_date.clone();
+                                    let base_salary_eur = c.base_salary_eur;
+                                    let coefficient = c.coefficient;
+                                    let status = c.status.clone();
+
+                                    let edit_contract = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let contract_id = contract_id.clone();
+                                        let contract_type = contract_type.clone();
+                                        let start_date = start_date.clone();
+                                        let end_date = end_date.clone();
+                                        let status = status.clone();
+                                        Callback::from(move |_| {
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let contract_id = contract_id.clone();
+                                            let contract_type = contract_type.clone();
+                                            let start_date = start_date.clone();
+                                            let end_date = end_date.clone();
+                                            let status = status.clone();
+                                            let salary = base_salary_eur + 10.0;
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let body = serde_json::json!({
+                                                    "contract_type": contract_type,
+                                                    "start_date": start_date,
+                                                    "end_date": end_date,
+                                                    "base_salary_eur": salary,
+                                                    "coefficient": coefficient,
+                                                    "status": status
+                                                });
+                                                let mut req = Request::put(&format!("{}/api/contracts/{}", API_BASE, contract_id))
+                                                    .body(body.to_string())
+                                                    .expect("valid request");
+                                                let _ = req.headers().set("Content-Type", "application/json");
+                                                if let Some(tk) = token {
+                                                    let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    let _ = req.headers().set("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    let delete_contract = {
+                                        let access_token = access_token.clone();
+                                        let csrf_token = csrf_token.clone();
+                                        let load_management = load_management.clone();
+                                        let contract_id = contract_id.clone();
+                                        Callback::from(move |_| {
+                                            let Some(win) = window() else { return; };
+                                            if !win.confirm_with_message("Delete this contract?").unwrap_or(false) {
+                                                return;
+                                            }
+                                            let token = (*access_token).clone();
+                                            let csrf = (*csrf_token).clone();
+                                            let load_management = load_management.clone();
+                                            let contract_id = contract_id.clone();
+                                            wasm_bindgen_futures::spawn_local(async move {
+                                                let mut req = Request::delete(&format!("{}/api/contracts/{}", API_BASE, contract_id));
+                                                if let Some(tk) = token {
+                                                    req = req.header("Authorization", &format!("Bearer {}", tk));
+                                                }
+                                                if let Some(cs) = csrf {
+                                                    req = req.header("x-csrf-token", &cs);
+                                                }
+                                                if req.send().await.is_ok() {
+                                                    load_management.emit(());
+                                                }
+                                            });
+                                        })
+                                    };
+
+                                    html! {
+                                        <li>
+                                            <span>{format!("{} / {:.2} EUR", contract_type, base_salary_eur)}</span>
+                                            <button onclick={edit_contract}>{"+10 EUR"}</button>
+                                            <button onclick={delete_contract}>{"Delete"}</button>
+                                        </li>
+                                    }
+                                }) }</ul>
                             </div>
                         </section>
 
@@ -858,7 +1098,87 @@ pub fn app() -> Html {
                                 />
                                 <button onclick={create_salary_element}>{"Add Salary Element"}</button>
                             </div>
-                            <ul>{ for salary_elements.iter().take(10).map(|s| html!{<li>{format!("{} / {:.2} EUR ({})", s.element_name, s.amount, s.period_label)}</li>}) }</ul>
+                            <ul>{ for salary_elements.iter().take(10).map(|s| {
+                                let salary_id = s.id.clone();
+                                let element_name = s.element_name.clone();
+                                let period_label = s.period_label.clone();
+                                let amount = s.amount;
+
+                                let edit_salary = {
+                                    let access_token = access_token.clone();
+                                    let csrf_token = csrf_token.clone();
+                                    let load_management = load_management.clone();
+                                    let salary_id = salary_id.clone();
+                                    let element_name = element_name.clone();
+                                    let period_label = period_label.clone();
+                                    Callback::from(move |_| {
+                                        let token = (*access_token).clone();
+                                        let csrf = (*csrf_token).clone();
+                                        let load_management = load_management.clone();
+                                        let salary_id = salary_id.clone();
+                                        let element_name = element_name.clone();
+                                        let period_label = period_label.clone();
+                                        let amount = amount + 5.0;
+                                        wasm_bindgen_futures::spawn_local(async move {
+                                            let body = serde_json::json!({
+                                                "element_name": element_name,
+                                                "amount": amount,
+                                                "period_label": period_label
+                                            });
+                                            let mut req = Request::put(&format!("{}/api/salary-elements/{}", API_BASE, salary_id))
+                                                .body(body.to_string())
+                                                .expect("valid request");
+                                            let _ = req.headers().set("Content-Type", "application/json");
+                                            if let Some(tk) = token {
+                                                let _ = req.headers().set("Authorization", &format!("Bearer {}", tk));
+                                            }
+                                            if let Some(cs) = csrf {
+                                                let _ = req.headers().set("x-csrf-token", &cs);
+                                            }
+                                            if req.send().await.is_ok() {
+                                                load_management.emit(());
+                                            }
+                                        });
+                                    })
+                                };
+
+                                let delete_salary = {
+                                    let access_token = access_token.clone();
+                                    let csrf_token = csrf_token.clone();
+                                    let load_management = load_management.clone();
+                                    let salary_id = salary_id.clone();
+                                    Callback::from(move |_| {
+                                        let Some(win) = window() else { return; };
+                                        if !win.confirm_with_message("Delete this salary element?").unwrap_or(false) {
+                                            return;
+                                        }
+                                        let token = (*access_token).clone();
+                                        let csrf = (*csrf_token).clone();
+                                        let load_management = load_management.clone();
+                                        let salary_id = salary_id.clone();
+                                        wasm_bindgen_futures::spawn_local(async move {
+                                            let mut req = Request::delete(&format!("{}/api/salary-elements/{}", API_BASE, salary_id));
+                                            if let Some(tk) = token {
+                                                req = req.header("Authorization", &format!("Bearer {}", tk));
+                                            }
+                                            if let Some(cs) = csrf {
+                                                req = req.header("x-csrf-token", &cs);
+                                            }
+                                            if req.send().await.is_ok() {
+                                                load_management.emit(());
+                                            }
+                                        });
+                                    })
+                                };
+
+                                html! {
+                                    <li>
+                                        <span>{format!("{} / {:.2} EUR ({})", element_name, amount, period_label)}</span>
+                                        <button onclick={edit_salary}>{"+5 EUR"}</button>
+                                        <button onclick={delete_salary}>{"Delete"}</button>
+                                    </li>
+                                }
+                            }) }</ul>
                         </section>
                     }
 
