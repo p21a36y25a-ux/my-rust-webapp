@@ -32,6 +32,11 @@ pub struct AppState {
         handlers::login,
         handlers::refresh,
         handlers::list_branches,
+        handlers::create_branch,
+        handlers::list_departments,
+        handlers::create_department,
+        handlers::list_job_positions,
+        handlers::create_job_position,
         handlers::list_employees,
         handlers::create_employee,
         handlers::upload_employee_file,
@@ -48,6 +53,10 @@ pub struct AppState {
         handlers::list_hr_definitions,
         handlers::create_hr_definition,
         handlers::list_registrations,
+        handlers::list_contracts,
+        handlers::create_contract,
+        handlers::list_salary_elements,
+        handlers::create_salary_element,
     ),
     components(schemas(
         models::LoginRequest,
@@ -55,6 +64,11 @@ pub struct AppState {
         models::AuthResponse,
         models::ApiMessage,
         models::Branch,
+        models::BranchCreate,
+        models::Department,
+        models::DepartmentCreate,
+        models::JobPosition,
+        models::JobPositionCreate,
         models::Employee,
         models::EmployeeCreate,
         models::AttendanceRecord,
@@ -65,12 +79,18 @@ pub struct AppState {
         models::LeaveDecisionRequest,
         models::PayrollInput,
         models::PayrollResult,
+        models::ContractRecord,
+        models::ContractCreate,
+        models::SalaryElementRecord,
+        models::SalaryElementCreate,
         handlers::HrDefinitionCreate,
         handlers::HrDefinitionRecord,
         handlers::RegistrationRecord,
         handlers::EmployeeQuery,
         handlers::AttendanceQuery,
         handlers::LeaveQuery,
+        handlers::ContractQuery,
+        handlers::SalaryElementQuery,
     )),
     tags(
         (name = "time-attendance-hr-payroll", description = "Time attendance, HR and payroll APIs")
@@ -110,7 +130,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/health", get(handlers::health))
         .route("/api/auth/login", post(handlers::login))
         .route("/api/auth/refresh", post(handlers::refresh))
-        .route("/api/company/branches", get(handlers::list_branches))
+        .route("/api/company/branches", get(handlers::list_branches).post(handlers::create_branch))
+        .route("/api/company/departments", get(handlers::list_departments).post(handlers::create_department))
+        .route("/api/company/job-positions", get(handlers::list_job_positions).post(handlers::create_job_position))
         .route("/api/employees", get(handlers::list_employees).post(handlers::create_employee))
         .route("/api/employees/:id/files", post(handlers::upload_employee_file))
         .route("/api/attendance", get(handlers::list_attendance))
@@ -122,6 +144,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/payroll/calculate", post(handlers::calculate_payroll))
         .route("/api/payroll/run", post(handlers::run_payroll))
         .route("/api/payroll/:run_id/edi", get(handlers::export_edi))
+        .route("/api/contracts", get(handlers::list_contracts).post(handlers::create_contract))
+        .route("/api/salary-elements", get(handlers::list_salary_elements).post(handlers::create_salary_element))
         .route("/api/hr-definitions", get(handlers::list_hr_definitions).post(handlers::create_hr_definition))
         .route("/api/administration/registrations", get(handlers::list_registrations));
 

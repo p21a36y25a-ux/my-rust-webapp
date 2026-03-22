@@ -32,6 +32,39 @@ pub struct Branch {
     pub municipality: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct BranchCreate {
+    pub company_id: Uuid,
+    pub name: String,
+    pub municipality: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct Department {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct DepartmentCreate {
+    pub branch_id: Uuid,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct JobPosition {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct JobPositionCreate {
+    pub name: String,
+    pub description: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Employee {
     pub id: Uuid,
@@ -138,6 +171,46 @@ pub struct LeaveCreateRequest {
     pub leave_type: String,
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct ContractRecord {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub contract_type: String,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub base_salary_eur: f64,
+    pub coefficient: f64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ContractCreate {
+    pub employee_id: Uuid,
+    pub contract_type: String,
+    pub start_date: NaiveDate,
+    pub end_date: Option<NaiveDate>,
+    pub base_salary_eur: f64,
+    pub coefficient: f64,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct SalaryElementRecord {
+    pub id: Uuid,
+    pub employee_id: Uuid,
+    pub element_name: String,
+    pub amount: f64,
+    pub period_label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct SalaryElementCreate {
+    pub employee_id: Uuid,
+    pub element_name: String,
+    pub amount: f64,
+    pub period_label: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

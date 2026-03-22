@@ -18,8 +18,10 @@ use crate::{
     auth::{create_token_pair, decode_token, require_csrf, verify_password, AuthUser},
     models::{
         ApiMessage, AttendanceEvent, AttendancePunchRequest, AttendanceRecord, AuthResponse, Branch,
-        Employee, EmployeeCreate, LeaveCreateRequest, LeaveDecisionRequest, LeaveRequestRecord,
-        LoginRequest, PayrollInput, PayrollResult, RefreshRequest, Role,
+        BranchCreate, ContractCreate, ContractRecord, Department, DepartmentCreate, Employee,
+        EmployeeCreate, JobPosition, JobPositionCreate, LeaveCreateRequest, LeaveDecisionRequest,
+        LeaveRequestRecord, LoginRequest, PayrollInput, PayrollResult, RefreshRequest, Role,
+        SalaryElementCreate, SalaryElementRecord,
     },
     AppState,
 };
@@ -38,6 +40,17 @@ pub struct LeaveQuery {
 pub struct AttendanceQuery {
     pub branch_id: Option<Uuid>,
     pub employee_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ContractQuery {
+    pub employee_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SalaryElementQuery {
+    pub employee_id: Option<Uuid>,
+    pub period_label: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -149,6 +162,105 @@ pub async fn list_branches(
     .map_err(internal_error)?;
 
     Ok(Json(items))
+}
+
+#[utoipa::path(post, path = "/api/company/branches", request_body = BranchCreate, responses((status = 201, body = Branch)))]
+pub async fn create_branch(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Json(payload): Json<BranchCreate>,
+) -> Result<(StatusCode, Json<Branch>), (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let branch = sqlx::query_as::<_, Branch>(
+        "INSERT INTO branches (id, company_id, name, municipality) VALUES ($1,$2,$3,$4) RETURNING id, company_id, name, municipality",
+    )
+    .bind(Uuid::new_v4())
+    .bind(payload.company_id)
+    .bind(payload.name)
+    .bind(payload.municipality)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok((StatusCode::CREATED, Json(branch)))
+}
+
+#[utoipa::path(get, path = "/api/company/departments", responses((status = 200, body = [Department])))]
+pub async fn list_departments(
+    state: axum::extract::State<AppState>,
+    _user: AuthUser,
+) -> Result<Json<Vec<Department>>, (StatusCode, String)> {
+    let rows = sqlx::query_as::<_, Department>(
+        "SELECT id, branch_id, name FROM departments ORDER BY name",
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/company/departments", request_body = DepartmentCreate, responses((status = 201, body = Department)))]
+pub async fn create_department(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Json(payload): Json<DepartmentCreate>,
+) -> Result<(StatusCode, Json<Department>), (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, Department>(
+        "INSERT INTO departments (id, branch_id, name) VALUES ($1,$2,$3) RETURNING id, branch_id, name",
+    )
+    .bind(Uuid::new_v4())
+    .bind(payload.branch_id)
+    .bind(payload.name)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(get, path = "/api/company/job-positions", responses((status = 200, body = [JobPosition])))]
+pub async fn list_job_positions(
+    state: axum::extract::State<AppState>,
+) -> Result<Json<Vec<JobPosition>>, (StatusCode, String)> {
+    let rows = sqlx::query_as::<_, JobPosition>(
+        "SELECT id, name, description FROM job_positions ORDER BY name",
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/company/job-positions", request_body = JobPositionCreate, responses((status = 201, body = JobPosition)))]
+pub async fn create_job_position(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Json(payload): Json<JobPositionCreate>,
+) -> Result<(StatusCode, Json<JobPosition>), (StatusCode, String)> {
+    ensure_role(&user, &["system_admin", "hr_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, JobPosition>(
+        "INSERT INTO job_positions (id, name, description) VALUES ($1,$2,$3) RETURNING id, name, description",
+    )
+    .bind(Uuid::new_v4())
+    .bind(payload.name)
+    .bind(payload.description)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
 }
 
 #[utoipa::path(get, path = "/api/employees", params(("branch_id" = Option<String>, Query, description = "Filter by branch")), responses((status = 200, body = [Employee])))]
@@ -409,6 +521,124 @@ pub async fn list_leave_requests(
     };
 
     Ok(Json(list))
+}
+
+#[utoipa::path(get, path = "/api/contracts", responses((status = 200, body = [ContractRecord])))]
+pub async fn list_contracts(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    Query(query): Query<ContractQuery>,
+) -> Result<Json<Vec<ContractRecord>>, (StatusCode, String)> {
+    ensure_role(&user, &["employee", "manager", "hr_admin", "system_admin"])?;
+
+    let rows = if let Some(employee_id) = query.employee_id {
+        sqlx::query_as::<_, ContractRecord>(
+            "SELECT id, employee_id, contract_type, start_date, end_date, base_salary_eur::double precision as base_salary_eur, coefficient::double precision as coefficient, status FROM contracts WHERE employee_id = $1 ORDER BY start_date DESC",
+        )
+        .bind(employee_id)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(internal_error)?
+    } else {
+        sqlx::query_as::<_, ContractRecord>(
+            "SELECT id, employee_id, contract_type, start_date, end_date, base_salary_eur::double precision as base_salary_eur, coefficient::double precision as coefficient, status FROM contracts ORDER BY start_date DESC",
+        )
+        .fetch_all(&state.pool)
+        .await
+        .map_err(internal_error)?
+    };
+
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/contracts", request_body = ContractCreate, responses((status = 201, body = ContractRecord)))]
+pub async fn create_contract(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Json(payload): Json<ContractCreate>,
+) -> Result<(StatusCode, Json<ContractRecord>), (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, ContractRecord>(
+        r#"INSERT INTO contracts (
+            id, employee_id, contract_type, start_date, end_date, base_salary_eur, coefficient, status
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING id, employee_id, contract_type, start_date, end_date,
+        base_salary_eur::double precision as base_salary_eur,
+        coefficient::double precision as coefficient,
+        status"#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(payload.employee_id)
+    .bind(payload.contract_type)
+    .bind(payload.start_date)
+    .bind(payload.end_date)
+    .bind(payload.base_salary_eur)
+    .bind(payload.coefficient)
+    .bind(payload.status)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+#[utoipa::path(get, path = "/api/salary-elements", responses((status = 200, body = [SalaryElementRecord])))]
+pub async fn list_salary_elements(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    Query(query): Query<SalaryElementQuery>,
+) -> Result<Json<Vec<SalaryElementRecord>>, (StatusCode, String)> {
+    ensure_role(&user, &["employee", "manager", "hr_admin", "system_admin"])?;
+
+    let rows = if let Some(employee_id) = query.employee_id {
+        sqlx::query_as::<_, SalaryElementRecord>(
+            "SELECT id, employee_id, element_name, amount::double precision as amount, period_label FROM salary_elements WHERE employee_id = $1 ORDER BY period_label DESC",
+        )
+        .bind(employee_id)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(internal_error)?
+    } else {
+        let _ = query.period_label;
+        sqlx::query_as::<_, SalaryElementRecord>(
+            "SELECT id, employee_id, element_name, amount::double precision as amount, period_label FROM salary_elements ORDER BY period_label DESC",
+        )
+        .fetch_all(&state.pool)
+        .await
+        .map_err(internal_error)?
+    };
+
+    Ok(Json(rows))
+}
+
+#[utoipa::path(post, path = "/api/salary-elements", request_body = SalaryElementCreate, responses((status = 201, body = SalaryElementRecord)))]
+pub async fn create_salary_element(
+    state: axum::extract::State<AppState>,
+    user: AuthUser,
+    headers: HeaderMap,
+    Json(payload): Json<SalaryElementCreate>,
+) -> Result<(StatusCode, Json<SalaryElementRecord>), (StatusCode, String)> {
+    ensure_role(&user, &["hr_admin", "system_admin"])?;
+    require_csrf(&headers, &user.csrf)?;
+
+    let row = sqlx::query_as::<_, SalaryElementRecord>(
+        r#"INSERT INTO salary_elements (id, employee_id, element_name, amount, period_label)
+           VALUES ($1,$2,$3,$4,$5)
+           RETURNING id, employee_id, element_name, amount::double precision as amount, period_label"#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(payload.employee_id)
+    .bind(payload.element_name)
+    .bind(payload.amount)
+    .bind(payload.period_label)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(internal_error)?;
+
+    Ok((StatusCode::CREATED, Json(row)))
 }
 
 #[utoipa::path(post, path = "/api/leave/{id}/manager-decision", request_body = LeaveDecisionRequest, responses((status = 200, body = LeaveRequestRecord)))]

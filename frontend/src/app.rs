@@ -1,3 +1,4 @@
+use gloo_file::{futures::read_as_data_url, File};
 use gloo_net::http::Request;
 use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
@@ -82,6 +83,8 @@ pub fn app() -> Html {
     let attendance_events = use_state(Vec::<String>::new);
     let leave_records = use_state(Vec::<LeaveRecord>::new);
     let payroll_result = use_state(|| None::<PayrollResult>);
+    let camera_photo = use_state(|| None::<String>);
+    let camera_input_ref = use_node_ref();
 
     let access_token = use_state(|| LocalStorage::get::<String>("access_token").ok());
     let csrf_token = use_state(|| LocalStorage::get::<String>("csrf_token").ok());
@@ -217,19 +220,24 @@ pub fn app() -> Html {
         let access_token = access_token.clone();
         let csrf_token = csrf_token.clone();
         let employees = employees.clone();
+        let camera_photo = camera_photo.clone();
         let error_msg = error_msg.clone();
         Callback::from(move |click_type: String| {
             let token = (*access_token).clone();
             let csrf = (*csrf_token).clone();
             let employees = (*employees).clone();
+            let photo = (*camera_photo).clone();
             let error_msg = error_msg.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 if employees.is_empty() {
                     error_msg.set("Select branch and load employees first".to_owned());
                     return;
                 }
+                let Some(photo) = photo else {
+                    error_msg.set("Capture a camera photo before clock-in/out".to_owned());
+                    return;
+                };
                 let employee_id = employees[0].id.clone();
-                let photo = format!("camera-demo:{}:{}", click_type, js_sys::Date::now());
                 let body = serde_json::json!({
                     "employee_id": employee_id,
                     "click_type": click_type,
@@ -254,6 +262,49 @@ pub fn app() -> Html {
 
                 if req.send().await.is_err() {
                     error_msg.set("Clock-in/out failed".to_owned());
+                }
+            });
+        })
+    };
+
+    let capture_photo = {
+        let camera_input_ref = camera_input_ref.clone();
+        Callback::from(move |_| {
+            if let Some(input) = camera_input_ref.cast::<HtmlInputElement>() {
+                input.set_value("");
+                let _ = input.click();
+            }
+        })
+    };
+
+    let on_camera_selected = {
+        let camera_photo = camera_photo.clone();
+        let error_msg = error_msg.clone();
+        Callback::from(move |event: Event| {
+            let input: HtmlInputElement = event.target_unchecked_into();
+            let Some(files) = input.files() else {
+                return;
+            };
+            if files.length() == 0 {
+                return;
+            }
+            let Some(raw_file) = files.get(0) else {
+                return;
+            };
+
+            let camera_photo = camera_photo.clone();
+            let error_msg = error_msg.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                match read_as_data_url(&File::from(raw_file)).await {
+                    Ok(data_url) => {
+                        let encoded = data_url
+                            .split_once(',')
+                            .map(|(_, b64)| b64.to_owned())
+                            .unwrap_or(data_url);
+                        camera_photo.set(Some(encoded));
+                        error_msg.set(String::new());
+                    }
+                    Err(_) => error_msg.set("Failed to read captured photo".to_owned()),
                 }
             });
         })
@@ -449,7 +500,16 @@ pub fn app() -> Html {
                     <section class="widgets">
                         <div class="card"><h3>{"Presence / Prezenca"}</h3><p>{format!("{} employees listed", employees.len())}</p></div>
                         <div class="card"><h3>{"Upcoming birthdays/leave"}</h3><p>{"Arta - 10 Feb, Leave requests in Vacation tab"}</p></div>
-                        <div class="card"><h3>{"Quick Clock"}</h3><button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Clock In"}</button></div>
+                        <div class="card">
+                            <h3>{"Quick Clock"}</h3>
+                            <button onclick={capture_photo.clone()}>{"Capture Camera Photo"}</button>
+                            <button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Clock In"}</button>
+                            if camera_photo.is_some() {
+                                <p>{"Camera photo ready"}</p>
+                            } else {
+                                <p>{"No photo captured"}</p>
+                            }
+                        </div>
                     </section>
 
                     <section class="view-tabs">
@@ -504,6 +564,15 @@ pub fn app() -> Html {
                     }) }} />
                     <small>{format!("Role: {}", (*user_role).clone())}</small>
                 </section>
+
+                <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onchange={on_camera_selected}
+                    ref={camera_input_ref}
+                    style="display:none"
+                />
 
                 if !error_msg.is_empty() {
                     <p class="error">{(*error_msg).clone()}</p>
