@@ -1,6 +1,16 @@
 # my-rust-webapp
 
-Concise full-stack starter with Axum backend, Yew WASM frontend, Postgres, Docker Compose, and CI.
+[![CI](https://github.com/p21a36y25a-ux/my-rust-webapp/actions/workflows/ci.yml/badge.svg)](https://github.com/p21a36y25a-ux/my-rust-webapp/actions/workflows/ci.yml)
+
+Concise full-stack starter with Axum backend, Yew WASM frontend, Postgres, Docker Compose, and GitHub Actions CI.
+
+## Highlights
+
+- Axum 0.7 REST backend
+- Yew 0.21 CSR frontend
+- SQLx + Postgres integration
+- Docker Compose one-command local stack
+- CI workflow for backend and frontend builds
 
 ## Repository Layout
 
@@ -15,7 +25,8 @@ Concise full-stack starter with Axum backend, Yew WASM frontend, Postgres, Docke
 docker compose up --build
 ```
 
-Services:
+### Services
+
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8080
 - Postgres: localhost:5432
@@ -44,6 +55,8 @@ cargo install trunk
 rustup target add wasm32-unknown-unknown
 trunk serve --port 3000
 ```
+
+Open http://localhost:3000 after both backend and frontend are running.
 
 ## API Endpoints
 
