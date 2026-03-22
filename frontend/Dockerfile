@@ -1,4 +1,4 @@
-FROM rust:1.70-slim AS builder
+FROM rust:slim AS builder
 WORKDIR /app/frontend
 
 RUN rustup target add wasm32-unknown-unknown

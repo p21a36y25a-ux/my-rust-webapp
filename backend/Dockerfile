@@ -1,4 +1,4 @@
-FROM rust:1.70-slim AS builder
+FROM rust:slim AS builder
 WORKDIR /app/backend
 
 COPY backend/Cargo.toml ./Cargo.toml
