@@ -100,6 +100,18 @@ enum View {
     Management,
 }
 
+fn menu_target(label: &str) -> Option<View> {
+    match label {
+        "Register Employees" => Some(View::EmployeeRegister),
+        "Vacation Request" | "Vacation Hours" | "Holiday Status" | "Holiday Calendar" => Some(View::Vacation),
+        "Salary Calculation" | "Payroll List" | "E-Declaration" => Some(View::Payroll),
+        "Register Contracts" | "Salary Elements" | "Branches" | "Departments/Units" | "Job Positions" => {
+            Some(View::Management)
+        }
+        _ => None,
+    }
+}
+
 fn menu_items() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
         ("Employee", vec!["Register Employees", "Click-in", "Register Contracts", "Employee Files", "Employee Status"]),
@@ -710,7 +722,23 @@ pub fn app() -> Html {
                         <div class="menu-item">
                             <span>{title}</span>
                             <div class="submenu">
-                                { for subs.into_iter().map(|s| html!{ <a>{s}</a> }) }
+                                {
+                                    for subs.into_iter().map(|s| {
+                                        let label = s.to_owned();
+                                        let view = view.clone();
+                                        let load_management = load_management.clone();
+                                        html! {
+                                            <a onclick={Callback::from(move |_| {
+                                                if let Some(next_view) = menu_target(&label) {
+                                                    if next_view == View::Management {
+                                                        load_management.emit(());
+                                                    }
+                                                    view.set(next_view);
+                                                }
+                                            })}>{s}</a>
+                                        }
+                                    })
+                                }
                             </div>
                         </div>
                     }) }
