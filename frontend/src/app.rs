@@ -987,7 +987,7 @@ pub fn app() -> Html {
                                             employee_positions.set(next);
                                             new_position_input.set(String::new());
                                         })
-                                    }}>{"Shto / Add"}</button>
+                                    }} class="icon-btn icon-btn--add">{"+"}</button>
                                 </div>
                                 <ul>{ for (*employee_positions).iter().enumerate().map(|(i, pos)| {
                                     let emp_pos = employee_positions.clone();
@@ -995,11 +995,11 @@ pub fn app() -> Html {
                                     html! {
                                         <li>
                                             <span>{pos_name}</span>
-                                            <button onclick={Callback::from(move |_| {
+                                            <button class="icon-btn icon-btn--delete" onclick={Callback::from(move |_| {
                                                 let mut next = (*emp_pos).clone();
                                                 next.remove(i);
                                                 emp_pos.set(next);
-                                            })}>{"Fshi / Delete"}</button>
+                                            })}>{"🗑"}</button>
                                         </li>
                                     }
                                 }) }</ul>
@@ -1085,8 +1085,8 @@ pub fn app() -> Html {
                                     html! {
                                         <li>
                                             <span>{department_name_value}</span>
-                                            <button onclick={edit_department}>{"Edit"}</button>
-                                            <button onclick={delete_department}>{"Delete"}</button>
+                                            <button class="icon-btn icon-btn--edit" onclick={edit_department}>{"✏"}</button>
+                                            <button class="icon-btn icon-btn--delete" onclick={delete_department}>{"🗑"}</button>
                                         </li>
                                     }
                                 }) }</ul>
@@ -1178,8 +1178,8 @@ pub fn app() -> Html {
                                     html! {
                                         <li>
                                             <span>{position_name}</span>
-                                            <button onclick={edit_position}>{"Edit"}</button>
-                                            <button onclick={delete_position}>{"Delete"}</button>
+                                            <button class="icon-btn icon-btn--edit" onclick={edit_position}>{"✏"}</button>
+                                            <button class="icon-btn icon-btn--delete" onclick={delete_position}>{"🗑"}</button>
                                         </li>
                                     }
                                 }) }</ul>
@@ -1334,9 +1334,9 @@ pub fn app() -> Html {
                                                 <input value={contract_type_value} oninput={on_contract_type_change} />
                                                 <input value={contract_salary_value} oninput={on_contract_salary_change} />
                                                 <input value={contract_status_value} oninput={on_contract_status_change} />
-                                                <button onclick={edit_contract}>{"Save"}</button>
+                                                <button class="icon-btn icon-btn--edit" onclick={edit_contract}>{"✓"}</button>
+                                                <button class="icon-btn icon-btn--delete" onclick={delete_contract}>{"🗑"}</button>
                                             </div>
-                                            <button onclick={delete_contract}>{"Delete"}</button>
                                         </li>
                                     }
                                 }) }</ul>
@@ -1505,9 +1505,9 @@ pub fn app() -> Html {
                                             <input value={salary_name_value} oninput={on_salary_name_change} />
                                             <input value={salary_amount_value} oninput={on_salary_amount_change} />
                                             <input value={salary_period_value} oninput={on_salary_period_change} />
-                                            <button onclick={edit_salary}>{"Save"}</button>
+                                            <button class="icon-btn icon-btn--edit" onclick={edit_salary}>{"✓"}</button>
+                                            <button class="icon-btn icon-btn--delete" onclick={delete_salary}>{"🗑"}</button>
                                         </div>
-                                        <button onclick={delete_salary}>{"Delete"}</button>
                                     </li>
                                 }
                             }) }</ul>
