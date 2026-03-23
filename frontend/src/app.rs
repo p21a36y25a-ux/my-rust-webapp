@@ -7,7 +7,12 @@ use wasm_bindgen::JsCast;
 use web_sys::{window, EventSource, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
 
-const API_BASE: &str = "http://localhost:8080";
+fn api_base() -> String {
+    let win = web_sys::window().expect("no window");
+    let loc = win.location();
+    let host = loc.hostname().unwrap_or_else(|_| "localhost".into());
+    format!("http://{}:8080", host)
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct Branch {
@@ -203,7 +208,7 @@ pub fn app() -> Html {
         let branches = branches.clone();
         use_effect_with((), move |_| {
             wasm_bindgen_futures::spawn_local(async move {
-                if let Ok(resp) = Request::get(&format!("{}/api/company/branches", API_BASE)).send().await {
+                if let Ok(resp) = Request::get(&format!("{}/api/company/branches", api_base())).send().await {
                     if let Ok(items) = resp.json::<Vec<Branch>>().await {
                         branches.set(items);
                     }
@@ -218,7 +223,7 @@ pub fn app() -> Html {
         let attendance_events = attendance_events.clone();
         use_effect_with((*access_token).clone(), move |token| {
             if let Some(t) = token {
-                if let Ok(es) = EventSource::new(&format!("{}/api/attendance/feed", API_BASE)) {
+                if let Ok(es) = EventSource::new(&format!("{}/api/attendance/feed", api_base())) {
                     let onmessage = wasm_bindgen::closure::Closure::<dyn FnMut(_)>::new({
                         let attendance_events = attendance_events.clone();
                         move |e: web_sys::MessageEvent| {
@@ -256,7 +261,7 @@ pub fn app() -> Html {
             wasm_bindgen_futures::spawn_local(async move {
                 let mut req = Request::get(&format!(
                     "{}/api/employees{}",
-                    API_BASE,
+                    api_base(),
                     selected
                         .as_ref()
                         .map(|id| format!("?branch_id={}", id))
@@ -297,7 +302,7 @@ pub fn app() -> Html {
 
             wasm_bindgen_futures::spawn_local(async move {
                 let body = serde_json::json!({ "email": email, "password": password });
-                let req = Request::post(&format!("{}/api/auth/login", API_BASE))
+                let req = Request::post(&format!("{}/api/auth/login", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
 
@@ -356,7 +361,7 @@ pub fn app() -> Html {
                     "note": "Web quick punch"
                 });
 
-                let mut req = Request::post(&format!("{}/api/attendance/punch", API_BASE))
+                let mut req = Request::post(&format!("{}/api/attendance/punch", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
 
@@ -439,7 +444,7 @@ pub fn app() -> Html {
                     "end_date": "2026-07-05"
                 });
 
-                let mut req = Request::post(&format!("{}/api/leave", API_BASE))
+                let mut req = Request::post(&format!("{}/api/leave", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
 
@@ -455,7 +460,7 @@ pub fn app() -> Html {
                 }
 
                 if req.send().await.is_ok() {
-                    let mut list_req = Request::get(&format!("{}/api/leave", API_BASE));
+                    let mut list_req = Request::get(&format!("{}/api/leave", api_base()));
                     let _ = token;
                     if let Ok(resp) = list_req.send().await {
                         if let Ok(items) = resp.json::<Vec<LeaveRecord>>().await {
@@ -503,7 +508,7 @@ pub fn app() -> Html {
                     "tier3_rate_multiplier": 1.6
                 });
 
-                let mut req = Request::post(&format!("{}/api/payroll/calculate", API_BASE))
+                let mut req = Request::post(&format!("{}/api/payroll/calculate", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
 
@@ -540,7 +545,7 @@ pub fn app() -> Html {
             let contracts = contracts.clone();
             let salary_elements = salary_elements.clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let mut departments_req = Request::get(&format!("{}/api/company/departments", API_BASE));
+                let mut departments_req = Request::get(&format!("{}/api/company/departments", api_base()));
                 if let Some(tk) = token.clone() {
                     departments_req = departments_req.header("Authorization", &format!("Bearer {}", tk));
                 }
@@ -550,13 +555,13 @@ pub fn app() -> Html {
                     }
                 }
 
-                if let Ok(resp) = Request::get(&format!("{}/api/company/job-positions", API_BASE)).send().await {
+                if let Ok(resp) = Request::get(&format!("{}/api/company/job-positions", api_base())).send().await {
                     if let Ok(items) = resp.json::<Vec<JobPosition>>().await {
                         job_positions.set(items);
                     }
                 }
 
-                let mut contracts_req = Request::get(&format!("{}/api/contracts", API_BASE));
+                let mut contracts_req = Request::get(&format!("{}/api/contracts", api_base()));
                 if let Some(tk) = token.clone() {
                     contracts_req = contracts_req.header("Authorization", &format!("Bearer {}", tk));
                 }
@@ -566,7 +571,7 @@ pub fn app() -> Html {
                     }
                 }
 
-                let mut salary_req = Request::get(&format!("{}/api/salary-elements", API_BASE));
+                let mut salary_req = Request::get(&format!("{}/api/salary-elements", api_base()));
                 if let Some(tk) = token {
                     salary_req = salary_req.header("Authorization", &format!("Bearer {}", tk));
                 }
@@ -599,7 +604,7 @@ pub fn app() -> Html {
                     return;
                 };
                 let body = serde_json::json!({ "branch_id": branch.id, "name": name });
-                let mut req = Request::post(&format!("{}/api/company/departments", API_BASE))
+                let mut req = Request::post(&format!("{}/api/company/departments", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
                 let _ = req.headers().set("Content-Type", "application/json");
@@ -628,7 +633,7 @@ pub fn app() -> Html {
             let load_management = load_management.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let body = serde_json::json!({ "name": name, "description": "Created from web management tab" });
-                let mut req = Request::post(&format!("{}/api/company/job-positions", API_BASE))
+                let mut req = Request::post(&format!("{}/api/company/job-positions", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
                 let _ = req.headers().set("Content-Type", "application/json");
@@ -671,7 +676,7 @@ pub fn app() -> Html {
                     "coefficient": 1.0,
                     "status": "active"
                 });
-                let mut req = Request::post(&format!("{}/api/contracts", API_BASE))
+                let mut req = Request::post(&format!("{}/api/contracts", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
                 let _ = req.headers().set("Content-Type", "application/json");
@@ -715,7 +720,7 @@ pub fn app() -> Html {
                     "amount": amount,
                     "period_label": "2026-03"
                 });
-                let mut req = Request::post(&format!("{}/api/salary-elements", API_BASE))
+                let mut req = Request::post(&format!("{}/api/salary-elements", api_base()))
                     .body(body.to_string())
                     .expect("valid request");
                 let _ = req.headers().set("Content-Type", "application/json");
@@ -1049,7 +1054,7 @@ pub fn app() -> Html {
                                             let department_id = department_id.clone();
                                             wasm_bindgen_futures::spawn_local(async move {
                                                 let body = serde_json::json!({ "name": next_name });
-                                                let mut req = Request::put(&format!("{}/api/company/departments/{}", API_BASE, department_id))
+                                                let mut req = Request::put(&format!("{}/api/company/departments/{}", api_base(), department_id))
                                                     .body(body.to_string())
                                                     .expect("valid request");
                                                 let _ = req.headers().set("Content-Type", "application/json");
@@ -1081,7 +1086,7 @@ pub fn app() -> Html {
                                             let load_management = load_management.clone();
                                             let department_id = department_id.clone();
                                             wasm_bindgen_futures::spawn_local(async move {
-                                                let mut req = Request::delete(&format!("{}/api/company/departments/{}", API_BASE, department_id));
+                                                let mut req = Request::delete(&format!("{}/api/company/departments/{}", api_base(), department_id));
                                                 if let Some(tk) = token {
                                                     req = req.header("Authorization", &format!("Bearer {}", tk));
                                                 }
@@ -1142,7 +1147,7 @@ pub fn app() -> Html {
                                                     "name": next_name,
                                                     "description": position_description
                                                 });
-                                                let mut req = Request::put(&format!("{}/api/company/job-positions/{}", API_BASE, position_id))
+                                                let mut req = Request::put(&format!("{}/api/company/job-positions/{}", api_base(), position_id))
                                                     .body(body.to_string())
                                                     .expect("valid request");
                                                 let _ = req.headers().set("Content-Type", "application/json");
@@ -1174,7 +1179,7 @@ pub fn app() -> Html {
                                             let load_management = load_management.clone();
                                             let position_id = position_id.clone();
                                             wasm_bindgen_futures::spawn_local(async move {
-                                                let mut req = Request::delete(&format!("{}/api/company/job-positions/{}", API_BASE, position_id));
+                                                let mut req = Request::delete(&format!("{}/api/company/job-positions/{}", api_base(), position_id));
                                                 if let Some(tk) = token {
                                                     req = req.header("Authorization", &format!("Bearer {}", tk));
                                                 }
@@ -1295,7 +1300,7 @@ pub fn app() -> Html {
                                                     "coefficient": coefficient,
                                                     "status": status
                                                 });
-                                                let mut req = Request::put(&format!("{}/api/contracts/{}", API_BASE, contract_id))
+                                                let mut req = Request::put(&format!("{}/api/contracts/{}", api_base(), contract_id))
                                                     .body(body.to_string())
                                                     .expect("valid request");
                                                 let _ = req.headers().set("Content-Type", "application/json");
@@ -1327,7 +1332,7 @@ pub fn app() -> Html {
                                             let load_management = load_management.clone();
                                             let contract_id = contract_id.clone();
                                             wasm_bindgen_futures::spawn_local(async move {
-                                                let mut req = Request::delete(&format!("{}/api/contracts/{}", API_BASE, contract_id));
+                                                let mut req = Request::delete(&format!("{}/api/contracts/{}", api_base(), contract_id));
                                                 if let Some(tk) = token {
                                                     req = req.header("Authorization", &format!("Bearer {}", tk));
                                                 }
@@ -1466,7 +1471,7 @@ pub fn app() -> Html {
                                                 "amount": amount,
                                                 "period_label": period_label
                                             });
-                                            let mut req = Request::put(&format!("{}/api/salary-elements/{}", API_BASE, salary_id))
+                                            let mut req = Request::put(&format!("{}/api/salary-elements/{}", api_base(), salary_id))
                                                 .body(body.to_string())
                                                 .expect("valid request");
                                             let _ = req.headers().set("Content-Type", "application/json");
@@ -1498,7 +1503,7 @@ pub fn app() -> Html {
                                         let load_management = load_management.clone();
                                         let salary_id = salary_id.clone();
                                         wasm_bindgen_futures::spawn_local(async move {
-                                            let mut req = Request::delete(&format!("{}/api/salary-elements/{}", API_BASE, salary_id));
+                                            let mut req = Request::delete(&format!("{}/api/salary-elements/{}", api_base(), salary_id));
                                             if let Some(tk) = token {
                                                 req = req.header("Authorization", &format!("Bearer {}", tk));
                                             }
