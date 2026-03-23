@@ -112,10 +112,10 @@ const KOSOVO_MUNICIPALITIES: &[&str] = &[
 
 fn menu_target(label: &str) -> Option<View> {
     match label {
-        "Register Employees" => Some(View::EmployeeRegister),
-        "Vacation Request" | "Vacation Hours" | "Holiday Status" | "Holiday Calendar" => Some(View::Vacation),
-        "Salary Calculation" | "Payroll List" | "E-Declaration" => Some(View::Payroll),
-        "Register Contracts" | "Salary Elements" | "Branches" | "Departments/Units" | "Job Positions" | "Employee Status" => {
+        "Regjistro Punonjës" => Some(View::EmployeeRegister),
+        "Kërkesë Pushimi" | "Orët e Pushimit" | "Statusi i Festave" | "Kalendari i Festave" => Some(View::Vacation),
+        "Llogaritja e Pagës" | "Lista e Pagave" | "E-Deklarata" => Some(View::Payroll),
+        "Regjistro Kontrata" | "Elementet e Pagës" | "Degët" | "Departamentet/Njësitë" | "Pozitat e Punës" | "Statusi i Punonjësit" => {
             Some(View::Management)
         }
         _ => None,
@@ -124,23 +124,23 @@ fn menu_target(label: &str) -> Option<View> {
 
 fn menu_title_target(title: &str) -> Option<View> {
     match title {
-        "Employee" => Some(View::EmployeeRegister),
-        "Salary/Compensation" => Some(View::Payroll),
-        "Vacation" => Some(View::Vacation),
-        "HR Definitions" | "Company" | "Administration" => Some(View::Management),
+        "Punonjësi" => Some(View::EmployeeRegister),
+        "Paga/Kompensimi" => Some(View::Payroll),
+        "Pushimi" => Some(View::Vacation),
+        "Definicionet HR" | "Kompania" | "Administrata" => Some(View::Management),
         _ => None,
     }
 }
 
 fn menu_items() -> Vec<(&'static str, Vec<&'static str>)> {
     vec![
-        ("Employee", vec!["Register Employees", "Click-in", "Register Contracts", "Employee Files", "Employee Status"]),
-        ("Salary/Compensation", vec!["Salary Determination", "Salary Period", "Additional Days/Hours", "Additional Income", "Salary Calculation", "Payroll List", "E-Declaration"]),
-        ("Vacation", vec!["Vacation Request", "Vacation Hours", "Holiday Status", "Holiday Calendar"]),
-        ("Click-in/Click-out", vec!["Record Click", "Open Entries", "Click List", "Employees Present"]),
-        ("HR Definitions", vec!["Employee Status", "Contract Types", "Employer Type", "Vacation Types", "Probation Types", "Element Calculation", "Coefficient", "Salary Elements"]),
-        ("Company", vec!["Company Details", "Branches", "Departments/Units", "Job Positions"]),
-        ("Administration", vec!["Municipal Registration", "State Registration", "Bank Registration", "Marital Status"]),
+        ("Punonjësi", vec!["Regjistro Punonjës", "Hyrje-Dalje", "Regjistro Kontrata", "Dosjet e Punonjësve", "Statusi i Punonjësit"]),
+        ("Paga/Kompensimi", vec!["Përcaktimi i Pagës", "Periudha e Pagës", "Ditë/Orë Shtesë", "Të Ardhura Shtesë", "Llogaritja e Pagës", "Lista e Pagave", "E-Deklarata"]),
+        ("Pushimi", vec!["Kërkesë Pushimi", "Orët e Pushimit", "Statusi i Festave", "Kalendari i Festave"]),
+        ("Hyrje/Dalje", vec!["Regjistro Hyrje", "Hyrje të Hapura", "Lista e Hyrjeve", "Punonjës të Pranishëm"]),
+        ("Definicionet HR", vec!["Statusi i Punonjësit", "Llojet e Kontratave", "Lloji i Punëdhënësit", "Llojet e Pushimit", "Llojet e Provës", "Llogaritja e Elementeve", "Koeficienti", "Elementet e Pagës"]),
+        ("Kompania", vec!["Detajet e Kompanisë", "Degët", "Departamentet/Njësitë", "Pozitat e Punës"]),
+        ("Administrata", vec!["Regjistrimi Komunal", "Regjistrimi Shtetëror", "Regjistrimi Bankar", "Statusi Martesor"]),
     ]
 }
 
@@ -741,12 +741,12 @@ pub fn app() -> Html {
         let cur_muni = (*reg_municipality).clone();
         html! {
             <section class="card grid-form">
-                <h3>{"Regjistrimi i punonjesit / Employee Registration"}</h3>
-                { field("Name / Emri", "Arta") }
-                { field("Surname / Mbiemri", "Krasniqi") }
-                { date_field("Birthdate / Data e lindjes", "1995-02-10") }
+                <h3>{"Regjistrimi i Punonjësit"}</h3>
+                { field("Emri", "Arta") }
+                { field("Mbiemri", "Krasniqi") }
+                { date_field("Data e Lindjes", "1995-02-10") }
                 <div class="field">
-                    <label>{"Country / Shteti"}</label>
+                    <label>{"Shteti"}</label>
                     <select onchange={{
                         let reg_country = reg_country.clone();
                         Callback::from(move |e: Event| {
@@ -759,11 +759,11 @@ pub fn app() -> Html {
                         <option value="Maqedonia" selected={cur_country == "Maqedonia"}>{"Maqedonia"}</option>
                     </select>
                 </div>
-                { field("Personal ID / Numri personal", "123456789") }
-                { field("Work ID / Numri i punes", "WID-1001") }
-                { field("Address / Adresa", "Prishtinë") }
+                { field("Numri Personal", "123456789") }
+                { field("Numri i Punës", "WID-1001") }
+                { field("Adresa", "Prishtinë") }
                 <div class="field">
-                    <label>{"Municipality / Komuna"}</label>
+                    <label>{"Komuna"}</label>
                     <select onchange={{
                         let reg_municipality = reg_municipality.clone();
                         Callback::from(move |e: Event| {
@@ -779,10 +779,10 @@ pub fn app() -> Html {
                     </select>
                 </div>
                 { field("Tel", "+38344111222") }
-                { field("Official Email / Email zyrtar", "employee@example.com") }
-                { date_field("Employment Date / Data e punesimit", "2026-01-15") }
+                { field("Email Zyrtar", "employee@example.com") }
+                { date_field("Data e Punësimit", "2026-01-15") }
                 <div class="field">
-                    <label>{"Pozita / Position"}</label>
+                    <label>{"Pozita"}</label>
                     <select onchange={{
                         let reg_pozita = reg_pozita.clone();
                         Callback::from(move |e: Event| {
@@ -798,7 +798,7 @@ pub fn app() -> Html {
                     </select>
                 </div>
                 <div class="field">
-                    <label>{"Dega / Branch"}</label>
+                    <label>{"Dega"}</label>
                     <select onchange={{
                         let reg_branch_id = reg_branch_id.clone();
                         Callback::from(move |e: Event| {
@@ -814,11 +814,11 @@ pub fn app() -> Html {
                         }) }
                     </select>
                 </div>
-                { field("Marital Status / Statusi martesor", "Single") }
-                { field("Education / Edukimi", "Bachelor") }
-                { field("Emergency Contact / Kontakt emergjent", "Prind") }
-                { field("Family Connection / Lidhja familjare", "Nene") }
-                { field("Emergency Phone / Telefoni emergjent", "+38344111333") }
+                { field("Statusi Martesor", "Beqar") }
+                { field("Edukimi", "Bachelor") }
+                { field("Kontakt Emergjent", "Prind") }
+                { field("Lidhja Familjare", "Nënë") }
+                { field("Telefoni Emergjent", "+38344111333") }
             </section>
         }
     };
@@ -826,9 +826,9 @@ pub fn app() -> Html {
     html! {
         <div class="shell">
             <header class="topbar">
-                <h1>{"Time Attendance, HR & Payroll"}</h1>
+                <h1>{"Prezenca, HR & Paga"}</h1>
                 <div class="actions">
-                    <button class="btn cozy" onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(true)) }}>{"Log In"}</button>
+                    <button class="btn cozy" onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(true)) }}>{"Hyrje"}</button>
                 </div>
             </header>
 
@@ -876,7 +876,7 @@ pub fn app() -> Html {
             <main>
                 if *view == View::Home {
                     <section class="hero">
-                        <h2>{"Zgjedh degen / Choose a branch"}</h2>
+                        <h2>{"Zgjedh degën"}</h2>
                         <div class="branch-grid">
                             { for branches.iter().map(|b| {
                                 let bid = b.id.clone();
@@ -892,7 +892,7 @@ pub fn app() -> Html {
                         </div>
 
                         <div class="card">
-                            <h3>{"Branch Employees"}</h3>
+                            <h3>{"Punonjësit e Degës"}</h3>
                             <div class="employee-inline">
                                 { for employees.iter().map(|e| {
                                     let selected_employee = selected_employee.clone();
@@ -903,36 +903,36 @@ pub fn app() -> Html {
                                 }) }
                             </div>
                             if let Some(id) = &*selected_employee {
-                                <p>{format!("Selected employee: {}", id)}</p>
+                                <p>{format!("Punonjësi i zgjedhur: {}", id)}</p>
                             }
                             <div class="view-tabs">
-                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_in".to_owned())) }}>{"Clock In"}</button>
-                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_out".to_owned())) }}>{"Clock Out"}</button>
+                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_in".to_owned())) }}>{"Hyrje"}</button>
+                                <button onclick={{ let quick_punch = quick_punch.clone(); Callback::from(move |_| quick_punch.emit("clock_out".to_owned())) }}>{"Dalje"}</button>
                             </div>
                         </div>
                     </section>
                 } else {
                     <section class="widgets">
-                        <div class="card"><h3>{"Presence / Prezenca"}</h3><p>{format!("{} employees listed", employees.len())}</p></div>
-                        <div class="card"><h3>{"Upcoming birthdays/leave"}</h3><p>{"Arta - 10 Feb, Leave requests in Vacation tab"}</p></div>
+                        <div class="card"><h3>{"Prezenca"}</h3><p>{format!("{} punonjës të listuar", employees.len())}</p></div>
+                        <div class="card"><h3>{"Ditëlindjet/Pushimet e ardhshme"}</h3><p>{"Arta - 10 Shk, Kërkesat e pushimit në skedën Pushimi"}</p></div>
                         <div class="card">
-                            <h3>{"Quick Clock"}</h3>
-                            <button onclick={capture_photo.clone()}>{"Capture Camera Photo"}</button>
-                            <button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Clock In"}</button>
+                            <h3>{"Hyrje e Shpejtë"}</h3>
+                            <button onclick={capture_photo.clone()}>{"Kap Foto me Kamerë"}</button>
+                            <button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Hyrje"}</button>
                             if camera_photo.is_some() {
-                                <p>{"Camera photo ready"}</p>
+                                <p>{"Foto e kamerës e gatshme"}</p>
                             } else {
-                                <p>{"No photo captured"}</p>
+                                <p>{"Nuk është kapur asnjë foto"}</p>
                             }
                         </div>
                     </section>
 
                     <section class="view-tabs">
-                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Dashboard)) }}>{"Dashboard"}</button>
-                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::EmployeeRegister)) }}>{"Register Employee"}</button>
-                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Vacation)) }}>{"Vacation"}</button>
-                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Payroll)) }}>{"Payroll"}</button>
-                        <button onclick={{ let view = view.clone(); let load_management = load_management.clone(); Callback::from(move |_| { view.set(View::Management); load_management.emit(()); }) }}>{"Management"}</button>
+                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Dashboard)) }}>{"Paneli"}</button>
+                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::EmployeeRegister)) }}>{"Regjistro Punonjës"}</button>
+                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Vacation)) }}>{"Pushimi"}</button>
+                        <button onclick={{ let view = view.clone(); Callback::from(move |_| view.set(View::Payroll)) }}>{"Paga"}</button>
+                        <button onclick={{ let view = view.clone(); let load_management = load_management.clone(); Callback::from(move |_| { view.set(View::Management); load_management.emit(()); }) }}>{"Menaxhimi"}</button>
                     </section>
 
                     if *view == View::EmployeeRegister {
@@ -941,20 +941,20 @@ pub fn app() -> Html {
 
                     if *view == View::Vacation {
                         <section class="card">
-                            <h3>{"Vacation & Holidays Calendar"}</h3>
-                            <p>{"Bajrami madh, Bajrami vogel, Krishtlindjet, Viti Ri, Dita e Pavarësis"}</p>
-                            <button onclick={submit_leave}>{"Request Vacation"}</button>
+                            <h3>{"Pushimi & Kalendari i Festave"}</h3>
+                            <p>{"Bajrami Madh, Bajrami Vogël, Krishtlindjet, Viti i Ri, Dita e Pavarësisë"}</p>
+                            <button onclick={submit_leave}>{"Kërko Pushim"}</button>
                             <ul>{ for leave_records.iter().map(|l| html!{<li>{format!("{} {}-{} [{}]", l.leave_type, fmt_date(&l.start_date), fmt_date(&l.end_date), l.status)}</li>}) }</ul>
                         </section>
                     }
 
                     if *view == View::Payroll {
                         <section class="card">
-                            <h3>{"Payroll Calculation (EUR, Kosovo rules)"}</h3>
-                            <p>{"Default: 20 days * 8h = 160 standard hours; overtime >160h; premium >200h"}</p>
-                            <button onclick={run_payroll}>{"Run Payroll Calculation"}</button>
+                            <h3>{"Llogaritja e Pagës (EUR, rregullat e Kosovës)"}</h3>
+                            <p>{"Si parazgjedhje: 20 ditë * 8h = 160 orë standarde; mbikoha >160h; premium >200h"}</p>
+                            <button onclick={run_payroll}>{"Llogarit Pagën"}</button>
                             if let Some(res) = &*payroll_result {
-                                <p>{format!("{} -> Gross {:.2} EUR / Net {:.2} EUR", res.month_label, res.gross_total, res.net_total)}</p>
+                                <p>{format!("{} -> Bruto {:.2} EUR / Neto {:.2} EUR", res.month_label, res.gross_total, res.net_total)}</p>
                                 <code>{&res.edi_line}</code>
                             }
                         </section>
@@ -963,7 +963,7 @@ pub fn app() -> Html {
                     if *view == View::Management {
                         <section class="widgets">
                             <div class="card">
-                                <h3>{"Employee Status / Pozitat"}</h3>
+                                <h3>{"Statusi i Punonjësit / Pozitat"}</h3>
                                 <div class="view-tabs">
                                     <input
                                         placeholder="Shto pozitë të re..."
@@ -1005,7 +1005,7 @@ pub fn app() -> Html {
                                 }) }</ul>
                             </div>
                             <div class="card">
-                                <h3>{"Departments"}</h3>
+                                <h3>{"Departamentet"}</h3>
                                 <input
                                     value={(*department_name).clone()}
                                     oninput={{
@@ -1016,7 +1016,7 @@ pub fn app() -> Html {
                                         })
                                     }}
                                 />
-                                <button onclick={create_department}>{"Create Department"}</button>
+                                <button onclick={create_department}>{"Krijo Departament"}</button>
                                 <ul>{ for departments.iter().map(|d| {
                                     let department_id = d.id.clone();
                                     let department_name_value = d.name.clone();
@@ -1029,7 +1029,7 @@ pub fn app() -> Html {
                                         let department_name_value = department_name_value.clone();
                                         Callback::from(move |_| {
                                             let Some(win) = window() else { return; };
-                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Department name", &department_name_value) else { return; };
+                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Emri i departamentit", &department_name_value) else { return; };
                                             let token = (*access_token).clone();
                                             let csrf = (*csrf_token).clone();
                                             let load_management = load_management.clone();
@@ -1060,7 +1060,7 @@ pub fn app() -> Html {
                                         let department_id = department_id.clone();
                                         Callback::from(move |_| {
                                             let Some(win) = window() else { return; };
-                                            if !win.confirm_with_message("Delete this department?").unwrap_or(false) {
+                                            if !win.confirm_with_message("A e fshini këtë departament?").unwrap_or(false) {
                                                 return;
                                             }
                                             let token = (*access_token).clone();
@@ -1092,7 +1092,7 @@ pub fn app() -> Html {
                                 }) }</ul>
                             </div>
                             <div class="card">
-                                <h3>{"Job Positions"}</h3>
+                                <h3>{"Pozitat e Punës"}</h3>
                                 <input
                                     value={(*job_name).clone()}
                                     oninput={{
@@ -1103,7 +1103,7 @@ pub fn app() -> Html {
                                         })
                                     }}
                                 />
-                                <button onclick={create_job_position}>{"Create Job Position"}</button>
+                                <button onclick={create_job_position}>{"Krijo Pozitë Pune"}</button>
                                 <ul>{ for job_positions.iter().map(|p| {
                                     let position_id = p.id.clone();
                                     let position_name = p.name.clone();
@@ -1118,7 +1118,7 @@ pub fn app() -> Html {
                                         let position_description = position_description.clone();
                                         Callback::from(move |_| {
                                             let Some(win) = window() else { return; };
-                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Job position name", &position_name) else { return; };
+                                            let Ok(Some(next_name)) = win.prompt_with_message_and_default("Emri i pozitës së punës", &position_name) else { return; };
                                             let token = (*access_token).clone();
                                             let csrf = (*csrf_token).clone();
                                             let load_management = load_management.clone();
@@ -1153,7 +1153,7 @@ pub fn app() -> Html {
                                         let position_id = position_id.clone();
                                         Callback::from(move |_| {
                                             let Some(win) = window() else { return; };
-                                            if !win.confirm_with_message("Delete this job position?").unwrap_or(false) {
+                                            if !win.confirm_with_message("A e fshini këtë pozitë pune?").unwrap_or(false) {
                                                 return;
                                             }
                                             let token = (*access_token).clone();
@@ -1185,8 +1185,8 @@ pub fn app() -> Html {
                                 }) }</ul>
                             </div>
                             <div class="card">
-                                <h3>{"Contracts"}</h3>
-                                <button onclick={create_contract}>{"Create Contract For First Employee"}</button>
+                                <h3>{"Kontratat"}</h3>
+                                <button onclick={create_contract}>{"Krijo Kontratë për Punonjësin e Parë"}</button>
                                 <ul>{ for contracts.iter().take(8).map(|c| {
                                     let contract_id = c.id.clone();
                                     let contract_type = c.contract_type.clone();
@@ -1306,7 +1306,7 @@ pub fn app() -> Html {
                                         let contract_id = contract_id.clone();
                                         Callback::from(move |_| {
                                             let Some(win) = window() else { return; };
-                                            if !win.confirm_with_message("Delete this contract?").unwrap_or(false) {
+                                            if !win.confirm_with_message("A e fshini këtë kontratë?").unwrap_or(false) {
                                                 return;
                                             }
                                             let token = (*access_token).clone();
@@ -1344,7 +1344,7 @@ pub fn app() -> Html {
                         </section>
 
                         <section class="card">
-                            <h3>{"Salary Elements"}</h3>
+                            <h3>{"Elementet e Pagës"}</h3>
                             <div class="view-tabs">
                                 <input
                                     value={(*salary_element_name).clone()}
@@ -1366,7 +1366,7 @@ pub fn app() -> Html {
                                         })
                                     }}
                                 />
-                                <button onclick={create_salary_element}>{"Add Salary Element"}</button>
+                                <button onclick={create_salary_element}>{"Shto Element Page"}</button>
                             </div>
                             <ul>{ for salary_elements.iter().take(10).map(|s| {
                                 let salary_id = s.id.clone();
@@ -1477,7 +1477,7 @@ pub fn app() -> Html {
                                     let salary_id = salary_id.clone();
                                     Callback::from(move |_| {
                                         let Some(win) = window() else { return; };
-                                        if !win.confirm_with_message("Delete this salary element?").unwrap_or(false) {
+                                        if !win.confirm_with_message("A e fshini këtë element page?").unwrap_or(false) {
                                             return;
                                         }
                                         let token = (*access_token).clone();
@@ -1515,7 +1515,7 @@ pub fn app() -> Html {
                     }
 
                     <section class="card">
-                        <h3>{"Real-time attendance feed"}</h3>
+                        <h3>{"Regjistri i prezencës në kohë reale"}</h3>
                         <ul>{ for attendance_events.iter().map(|e| html!{<li>{e}</li>}) }</ul>
                     </section>
                 }
@@ -1523,22 +1523,22 @@ pub fn app() -> Html {
                 if *show_login_popup {
                     <div class="modal-overlay" onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(false)) }}>
                         <section class="card login-modal" onclick={Callback::from(|e: MouseEvent| e.stop_propagation())}>
-                            <h3>{"Demo Login"}</h3>
+                            <h3>{"Hyrje Demo"}</h3>
                             <label>{"Email"}</label>
                             <input value={(*login_email).clone()} oninput={{ let login_email = login_email.clone(); Callback::from(move |e: InputEvent| {
                                 let input: HtmlInputElement = e.target_unchecked_into();
                                 login_email.set(input.value());
                             }) }} />
-                            <label>{"Password"}</label>
+                            <label>{"Fjalëkalimi"}</label>
                             <input type="password" value={(*login_password).clone()} oninput={{ let login_password = login_password.clone(); Callback::from(move |e: InputEvent| {
                                 let input: HtmlInputElement = e.target_unchecked_into();
                                 login_password.set(input.value());
                             }) }} />
                             <div class="view-tabs">
-                                <button class="btn cozy" onclick={on_login.clone()}>{"Log In"}</button>
-                                <button onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(false)) }}>{"Close"}</button>
+                                <button class="btn cozy" onclick={on_login.clone()}>{"Hyr"}</button>
+                                <button onclick={{ let show_login_popup = show_login_popup.clone(); Callback::from(move |_| show_login_popup.set(false)) }}>{"Mbyll"}</button>
                             </div>
-                            <small>{format!("Role: {}", (*user_role).clone())}</small>
+                            <small>{format!("Roli: {}", (*user_role).clone())}</small>
                         </section>
                     </div>
                 }
@@ -1565,7 +1565,7 @@ fn field(title: &str, placeholder: &str) -> Html {
         <div class="field">
             <label>{title}</label>
             <input placeholder={placeholder.to_owned()} />
-            <small>{"Validation: Required / Kerkohen"}</small>
+            <small>{"E detyrueshme"}</small>
         </div>
     }
 }
