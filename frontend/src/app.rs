@@ -4,7 +4,7 @@ use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use wasm_bindgen::JsCast;
-use web_sys::{window, EventSource, HtmlInputElement};
+use web_sys::{window, EventSource, HtmlInputElement, HtmlSelectElement};
 use yew::prelude::*;
 
 const API_BASE: &str = "http://localhost:8080";
@@ -100,12 +100,22 @@ enum View {
     Management,
 }
 
+const KOSOVO_MUNICIPALITIES: &[&str] = &[
+    "Prishtinë", "Prizren", "Ferizaj", "Pejë", "Gjakovë", "Gjilan",
+    "Mitrovicë e Jugut", "Vushtrri", "Suharekë", "Rahovec", "Drenas",
+    "Lipjan", "Podujevë", "Viti", "Kamenicë", "Istog", "Klinë",
+    "Skenderaj", "Malishevë", "Deçan", "Dragash", "Kaçanik", "Shtime",
+    "Obiliq", "Fushë Kosovë", "Novo Bërdë", "Ranillug", "Partesh",
+    "Kllokot", "Graçanicë", "Mitrovica e Veriut", "Zubin Potok",
+    "Zveçan", "Leposaviq", "Junik", "Mamushë", "Hani i Elezit",
+];
+
 fn menu_target(label: &str) -> Option<View> {
     match label {
         "Register Employees" => Some(View::EmployeeRegister),
         "Vacation Request" | "Vacation Hours" | "Holiday Status" | "Holiday Calendar" => Some(View::Vacation),
         "Salary Calculation" | "Payroll List" | "E-Declaration" => Some(View::Payroll),
-        "Register Contracts" | "Salary Elements" | "Branches" | "Departments/Units" | "Job Positions" => {
+        "Register Contracts" | "Salary Elements" | "Branches" | "Departments/Units" | "Job Positions" | "Employee Status" => {
             Some(View::Management)
         }
         _ => None,
@@ -169,6 +179,25 @@ pub fn app() -> Html {
     let salary_name_inputs = use_state(HashMap::<String, String>::new);
     let salary_amount_inputs = use_state(HashMap::<String, String>::new);
     let salary_period_inputs = use_state(HashMap::<String, String>::new);
+    let employee_positions = use_state(|| vec![
+        "Menaxher".to_owned(),
+        "Asistent menaxher".to_owned(),
+        "Depoist Depo".to_owned(),
+        "Keshilltarë per Klient".to_owned(),
+        "Arkitekt".to_owned(),
+        "Ndihmese".to_owned(),
+        "Shtepiak".to_owned(),
+        "Menaxher i Depos".to_owned(),
+        "Kordinator I Shitjes".to_owned(),
+        "Menaxher Importi".to_owned(),
+        "Vozites".to_owned(),
+        "Inxhinier i Hidros".to_owned(),
+    ]);
+    let new_position_input = use_state(String::new);
+    let reg_pozita = use_state(|| "Menaxher".to_owned());
+    let reg_country = use_state(|| "Kosova".to_owned());
+    let reg_branch_id = use_state(String::new);
+    let reg_municipality = use_state(|| "Prishtinë".to_owned());
 
     {
         let branches = branches.clone();
@@ -703,27 +732,95 @@ pub fn app() -> Html {
         })
     };
 
-    let register_form = html! {
-        <section class="card grid-form">
-            <h3>{"Regjistrimi i punonjesit / Employee Registration"}</h3>
-            { field("Name / Emri", "Arta") }
-            { field("Surname / Mbiemri", "Krasniqi") }
-            { field("Birthdate / Data e lindjes", "1995-02-10") }
-            { field("Country / Shteti (Kosova, Shqiperia, Maqedonia)", "Kosova") }
-            { field("Personal ID / Numri personal", "123456789") }
-            { field("Work ID / Numri i punes", "WID-1001") }
-            { field("Address / Adresa", "Prishtine") }
-            { field("Municipality / Komuna", "Prishtine") }
-            { field("Tel", "+38344111222") }
-            { field("Official Email / Email zyrtar", "employee@example.com") }
-            { field("Employment Date / Data e punesimit", "2026-01-15") }
-            { field("Marital Status / Statusi martesor", "Single") }
-            { field("Education / Edukimi", "Bachelor") }
-            { field("Emergency Contact / Kontakt emergjent", "Prind") }
-            { field("Family Connection / Lidhja familjare", "Nene") }
-            { field("Emergency Phone / Telefoni emergjent", "+38344111333") }
-            <small>{"Pozitat e paracaktuara: Menaxher, Asistent menaxher, Depoist Depo, Keshilltarë per Klient, Arkitekt, Ndihmese, Shtepiak, Menaxher i Depos, Kordinator I Shitjes, Menaxher Importi, Vozites, Inxhinier i Hidros."}</small>
-        </section>
+    let register_form = {
+        let emp_positions_list = (*employee_positions).clone();
+        let branch_list = (*branches).clone();
+        let cur_pozita = (*reg_pozita).clone();
+        let cur_country = (*reg_country).clone();
+        let cur_branch = (*reg_branch_id).clone();
+        let cur_muni = (*reg_municipality).clone();
+        html! {
+            <section class="card grid-form">
+                <h3>{"Regjistrimi i punonjesit / Employee Registration"}</h3>
+                { field("Name / Emri", "Arta") }
+                { field("Surname / Mbiemri", "Krasniqi") }
+                { field("Birthdate / Data e lindjes", "1995-02-10") }
+                <div class="field">
+                    <label>{"Country / Shteti"}</label>
+                    <select onchange={{
+                        let reg_country = reg_country.clone();
+                        Callback::from(move |e: Event| {
+                            let sel: HtmlSelectElement = e.target_unchecked_into();
+                            reg_country.set(sel.value());
+                        })
+                    }}>
+                        <option value="Kosova" selected={cur_country == "Kosova"}>{"Kosova"}</option>
+                        <option value="Shqipëria" selected={cur_country == "Shqipëria"}>{"Shqipëria"}</option>
+                        <option value="Maqedonia" selected={cur_country == "Maqedonia"}>{"Maqedonia"}</option>
+                    </select>
+                </div>
+                { field("Personal ID / Numri personal", "123456789") }
+                { field("Work ID / Numri i punes", "WID-1001") }
+                { field("Address / Adresa", "Prishtinë") }
+                <div class="field">
+                    <label>{"Municipality / Komuna"}</label>
+                    <select onchange={{
+                        let reg_municipality = reg_municipality.clone();
+                        Callback::from(move |e: Event| {
+                            let sel: HtmlSelectElement = e.target_unchecked_into();
+                            reg_municipality.set(sel.value());
+                        })
+                    }}>
+                        { for KOSOVO_MUNICIPALITIES.iter().map(|m| {
+                            let is_sel = cur_muni == *m;
+                            let mv = m.to_string();
+                            html! { <option value={mv.clone()} selected={is_sel}>{mv}</option> }
+                        }) }
+                    </select>
+                </div>
+                { field("Tel", "+38344111222") }
+                { field("Official Email / Email zyrtar", "employee@example.com") }
+                { field("Employment Date / Data e punesimit", "2026-01-15") }
+                <div class="field">
+                    <label>{"Pozita / Position"}</label>
+                    <select onchange={{
+                        let reg_pozita = reg_pozita.clone();
+                        Callback::from(move |e: Event| {
+                            let sel: HtmlSelectElement = e.target_unchecked_into();
+                            reg_pozita.set(sel.value());
+                        })
+                    }}>
+                        { for emp_positions_list.iter().map(|p| {
+                            let is_sel = cur_pozita == *p;
+                            let pv = p.clone();
+                            html! { <option value={pv.clone()} selected={is_sel}>{pv}</option> }
+                        }) }
+                    </select>
+                </div>
+                <div class="field">
+                    <label>{"Dega / Branch"}</label>
+                    <select onchange={{
+                        let reg_branch_id = reg_branch_id.clone();
+                        Callback::from(move |e: Event| {
+                            let sel: HtmlSelectElement = e.target_unchecked_into();
+                            reg_branch_id.set(sel.value());
+                        })
+                    }}>
+                        { for branch_list.iter().map(|b| {
+                            let is_sel = cur_branch == b.id;
+                            let bid = b.id.clone();
+                            let bname = b.name.clone();
+                            html! { <option value={bid} selected={is_sel}>{bname}</option> }
+                        }) }
+                    </select>
+                </div>
+                { field("Marital Status / Statusi martesor", "Single") }
+                { field("Education / Edukimi", "Bachelor") }
+                { field("Emergency Contact / Kontakt emergjent", "Prind") }
+                { field("Family Connection / Lidhja familjare", "Nene") }
+                { field("Emergency Phone / Telefoni emergjent", "+38344111333") }
+            </section>
+        }
     };
 
     html! {
@@ -865,6 +962,48 @@ pub fn app() -> Html {
 
                     if *view == View::Management {
                         <section class="widgets">
+                            <div class="card">
+                                <h3>{"Employee Status / Pozitat"}</h3>
+                                <div class="view-tabs">
+                                    <input
+                                        placeholder="Shto pozitë të re..."
+                                        value={(*new_position_input).clone()}
+                                        oninput={{
+                                            let new_position_input = new_position_input.clone();
+                                            Callback::from(move |e: InputEvent| {
+                                                let input: HtmlInputElement = e.target_unchecked_into();
+                                                new_position_input.set(input.value());
+                                            })
+                                        }}
+                                    />
+                                    <button onclick={{
+                                        let employee_positions = employee_positions.clone();
+                                        let new_position_input = new_position_input.clone();
+                                        Callback::from(move |_| {
+                                            let name = (*new_position_input).trim().to_owned();
+                                            if name.is_empty() { return; }
+                                            let mut next = (*employee_positions).clone();
+                                            next.push(name);
+                                            employee_positions.set(next);
+                                            new_position_input.set(String::new());
+                                        })
+                                    }}>{"Shto / Add"}</button>
+                                </div>
+                                <ul>{ for (*employee_positions).iter().enumerate().map(|(i, pos)| {
+                                    let emp_pos = employee_positions.clone();
+                                    let pos_name = pos.clone();
+                                    html! {
+                                        <li>
+                                            <span>{pos_name}</span>
+                                            <button onclick={Callback::from(move |_| {
+                                                let mut next = (*emp_pos).clone();
+                                                next.remove(i);
+                                                emp_pos.set(next);
+                                            })}>{"Fshi / Delete"}</button>
+                                        </li>
+                                    }
+                                }) }</ul>
+                            </div>
                             <div class="card">
                                 <h3>{"Departments"}</h3>
                                 <input
