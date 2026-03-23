@@ -917,6 +917,19 @@ pub fn app() -> Html {
                         <div class="card"><h3>{"Ditëlindjet/Pushimet e ardhshme"}</h3><p>{"Arta - 10 Shk, Kërkesat e pushimit në skedën Pushimi"}</p></div>
                         <div class="card">
                             <h3>{"Hyrje e Shpejtë"}</h3>
+                            <div class="branch-grid">
+                                { for branches.iter().map(|b| {
+                                    let bid = b.id.clone();
+                                    let selected_branch = selected_branch.clone();
+                                    let load_employees = load_employees.clone();
+                                    html! {
+                                        <button class="branch-btn" onclick={Callback::from(move |_| {
+                                            selected_branch.set(Some(bid.clone()));
+                                            load_employees.emit(());
+                                        })}>{ &b.name }</button>
+                                    }
+                                }) }
+                            </div>
                             <button onclick={capture_photo.clone()}>{"Kap Foto me Kamerë"}</button>
                             <button onclick={Callback::from(move |_| quick_punch.emit("clock_in".to_owned()))}>{"Hyrje"}</button>
                             if camera_photo.is_some() {
