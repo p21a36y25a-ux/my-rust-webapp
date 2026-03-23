@@ -744,7 +744,7 @@ pub fn app() -> Html {
                 <h3>{"Regjistrimi i punonjesit / Employee Registration"}</h3>
                 { field("Name / Emri", "Arta") }
                 { field("Surname / Mbiemri", "Krasniqi") }
-                { field("Birthdate / Data e lindjes", "1995-02-10") }
+                { date_field("Birthdate / Data e lindjes", "1995-02-10") }
                 <div class="field">
                     <label>{"Country / Shteti"}</label>
                     <select onchange={{
@@ -780,7 +780,7 @@ pub fn app() -> Html {
                 </div>
                 { field("Tel", "+38344111222") }
                 { field("Official Email / Email zyrtar", "employee@example.com") }
-                { field("Employment Date / Data e punesimit", "2026-01-15") }
+                { date_field("Employment Date / Data e punesimit", "2026-01-15") }
                 <div class="field">
                     <label>{"Pozita / Position"}</label>
                     <select onchange={{
@@ -944,7 +944,7 @@ pub fn app() -> Html {
                             <h3>{"Vacation & Holidays Calendar"}</h3>
                             <p>{"Bajrami madh, Bajrami vogel, Krishtlindjet, Viti Ri, Dita e Pavarësis"}</p>
                             <button onclick={submit_leave}>{"Request Vacation"}</button>
-                            <ul>{ for leave_records.iter().map(|l| html!{<li>{format!("{} {}-{} [{}]", l.leave_type, l.start_date, l.end_date, l.status)}</li>}) }</ul>
+                            <ul>{ for leave_records.iter().map(|l| html!{<li>{format!("{} {}-{} [{}]", l.leave_type, fmt_date(&l.start_date), fmt_date(&l.end_date), l.status)}</li>}) }</ul>
                         </section>
                     }
 
@@ -1568,4 +1568,20 @@ fn field(title: &str, placeholder: &str) -> Html {
             <small>{"Validation: Required / Kerkohen"}</small>
         </div>
     }
+}
+
+fn date_field(title: &str, default_val: &str) -> Html {
+    html! {
+        <div class="field">
+            <label>{title}</label>
+            <input type="date" value={default_val.to_owned()} />
+            <small>{"Format: dd-mm-yyyy"}</small>
+        </div>
+    }
+}
+
+/// Converts ISO `yyyy-mm-dd` to display format `dd-mm-yyyy`.
+fn fmt_date(iso: &str) -> String {
+    let p: Vec<&str> = iso.split('-').collect();
+    if p.len() == 3 { format!("{}-{}-{}", p[2], p[1], p[0]) } else { iso.to_owned() }
 }
