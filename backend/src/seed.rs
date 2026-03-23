@@ -64,9 +64,17 @@ pub async fn seed_demo_data(state: &AppState) -> anyhow::Result<()> {
     )
     .await?;
 
+    let blendi_user = ensure_demo_user(
+        state,
+        "blendi.peja@example.com",
+        "Password123!",
+        Role::Employee,
+        Some(branch_peja),
+    )
+    .await?;
     ensure_demo_employee(
         state,
-        Uuid::new_v4(),
+        blendi_user,
         branch_peja,
         "Blendi",
         "Gashi",
@@ -76,9 +84,17 @@ pub async fn seed_demo_data(state: &AppState) -> anyhow::Result<()> {
     )
     .await?;
 
+    let drita_user = ensure_demo_user(
+        state,
+        "drita.prizren@example.com",
+        "Password123!",
+        Role::Employee,
+        Some(branch_prizreni),
+    )
+    .await?;
     ensure_demo_employee(
         state,
-        Uuid::new_v4(),
+        drita_user,
         branch_prizreni,
         "Drita",
         "Bytyqi",

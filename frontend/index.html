@@ -128,6 +128,7 @@
         border-radius: 6px;
         border: 1px solid transparent;
         transition: background .14s, color .14s, border-color .14s;
+        -webkit-tap-highlight-color: transparent;
       }
       .menu-title:hover {
         box-shadow: none;
@@ -271,8 +272,89 @@
       }
 
       @media (max-width: 900px) {
-        .widgets, .grid-form { grid-template-columns: 1fr; }
+        .widgets { grid-template-columns: repeat(2, 1fr); }
+        .grid-form { grid-template-columns: 1fr; }
         .submenu { position: static; display: block; border: 0; background: transparent; padding: .2rem 0 0; }
+      }
+
+      /* ── Phone / small screens ── */
+      @media (max-width: 600px) {
+        .shell { padding: .5rem .6rem; }
+        .topbar { padding: .5rem .75rem; border-radius: 8px; margin-bottom: .5rem; }
+        h1 { font-size: .95rem; }
+        h3 { font-size: .82rem; }
+
+        /* Stack ALL grids to single column */
+        .widgets { grid-template-columns: 1fr; gap: .55rem; }
+        .grid-form { grid-template-columns: 1fr; }
+
+        /* Branch buttons: full-width on phone */
+        .branch-grid { flex-direction: column; align-items: stretch; gap: .55rem; }
+        .branch-btn {
+          min-width: unset;
+          width: 100%;
+          font-size: 1rem;
+          padding: .75rem 1rem;
+          border-radius: 10px;
+        }
+
+        /* Employee pills: bigger tap targets */
+        .employee-pill {
+          font-size: .9rem;
+          padding: .55rem .85rem;
+        }
+
+        /* Mega-menu: horizontal scroll on phone */
+        .mega-menu {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          gap: .25rem;
+          padding: .35rem .5rem;
+          border-radius: 8px;
+        }
+        .menu-title { font-size: .82rem; padding: .32rem .55rem; white-space: nowrap; }
+
+        /* Submenus open on tap (focus-within) */
+        .submenu {
+          position: absolute;
+          top: calc(100% + 3px);
+          left: 0;
+          min-width: 190px;
+          display: none;
+          background: #161616;
+          border: 1px solid var(--border);
+          border-top: 2px solid var(--brand);
+          border-radius: 0 0 10px 10px;
+          padding: .35rem;
+          z-index: 99;
+          opacity: 1;
+          transform: none;
+        }
+        .menu-item:focus-within .submenu { display: block; }
+        .menu-title:focus { outline: 2px solid var(--brand); }
+
+        /* View tabs */
+        .view-tabs { gap: .35rem; margin-bottom: .55rem; }
+        .view-tabs button { font-size: .82rem; padding: .42rem .65rem; }
+
+        /* Cards */
+        .card { padding: .75rem; border-radius: 10px; }
+
+        /* Quick punch buttons: full width */
+        .card > button {
+          display: block;
+          width: 100%;
+          margin-bottom: .4rem;
+          font-size: .95rem;
+          padding: .65rem;
+        }
+
+        /* Hero section */
+        .hero { padding: 1.2rem .2rem; }
+
+        /* Login modal */
+        .login-modal { width: 95vw; }
       }
     </style>
   </head>
